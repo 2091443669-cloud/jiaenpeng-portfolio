@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="zh-CN" class="is-page-loading">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>贾恩棚交互作品集</title>
+    <link rel="stylesheet" href="./styles.css?v=liquid-ether-v7" />
+  </head>
+  <body data-mode="atelier">
+    <header class="site-header" aria-label="作品集导航">
+      <a class="brand" href="#top" aria-label="返回顶部">
+        <span class="brand-mark"><img src="./assets/dc.png" alt="" /></span>
+        <span class="brand-name" data-i18n="navName">贾恩棚</span>
+      </a>
+
+      <button
+        class="mobile-nav-toggle"
+        type="button"
+        data-mobile-nav-toggle
+        aria-label="打开导航"
+        aria-expanded="false"
+        aria-controls="primary-navigation"
+      >
+        <span class="mobile-nav-toggle-icon" aria-hidden="true"></span>
+      </button>
+
+      <nav class="nav-links" id="primary-navigation" aria-label="主要导航">
+        <a href="#work" data-i18n="navWork">作品</a>
+        <a href="#archive" data-i18n="navArchive">归档</a>
+        <a href="#awards" data-i18n="navAwards">荣誉</a>
+        <a href="#about" data-i18n="navAbout">关于</a>
+      </nav>
+
+      <div class="header-actions">
+        <div class="language-switch gooey-language-nav" aria-label="Language" role="group">
+          <button class="lang-btn is-active" type="button" data-lang="zh">中文</button>
+          <button class="lang-btn" type="button" data-lang="en">EN</button>
+        </div>
+      </div>
+    </header>
+
+    <main id="top">
+      <section class="hero hero-liquid" aria-labelledby="hero-title">
+        <div class="liquid-ether-stage" aria-hidden="true">
+          <div class="liquid-ether-mount" id="liquidEtherMount"></div>
+        </div>
+
+        <div class="hero-copy">
+          <p class="eyebrow hero-kicker" data-i18n="heroEyebrow">Interactive Visual Portfolio</p>
+          <h1 id="hero-title">
+            <span class="hero-title-primary" data-i18n="heroTitlePrimary">贾恩棚 · 作品集 · 个人简历</span>
+            <span class="hero-title-secondary" data-i18n="heroTitleSecondary">把作品集做成一个可以探索的世界</span>
+          </h1>
+          <p class="hero-summary" data-i18n="heroSummary">
+            聚焦文化视觉、品牌系统、IP 形象与信息可视化设计，作品涵盖非遗传播、品牌规范、包装与文创延展，多项作品获得国家级赛事奖项。
+          </p>
+          <div class="hero-actions">
+            <a class="primary-link" href="#work" data-i18n="viewSelected">浏览作品</a>
+            <a class="secondary-link" href="#about" data-i18n="viewProfile">了解我</a>
+          </div>
+        </div>
+
+        <aside class="hero-index" aria-label="作品集摘要">
+          <div class="hero-index-item">
+            <span data-i18n="heroIndexSelected">精选作品</span>
+            <strong data-i18n="heroIndexCount">25+</strong>
+          </div>
+          <div class="hero-index-item">
+            <span data-i18n="heroIndexDisciplines">设计方向</span>
+            <strong data-i18n="heroIndexDisciplineValue">平面 / 品牌 / 视觉</strong>
+          </div>
+        </aside>
+      </section>
+
+      <section class="intro-band scroll-reveal" aria-label="作品集能力概览">
+        <div class="metric">
+          <span>01</span>
+          <strong data-i18n="metricCultureTitle">文化叙事</strong>
+          <p data-i18n="metricCultureBody">从黎族、乡村、民俗与公共主题中提炼视觉语言，让案例有清晰的文化来源。</p>
+        </div>
+        <div class="metric">
+          <span>02</span>
+          <strong data-i18n="metricSystemTitle">系统塑造</strong>
+          <p data-i18n="metricSystemBody">把标识、图形、色彩、版式与应用物料组织成可延展的视觉系统。</p>
+        </div>
+        <div class="metric">
+          <span>03</span>
+          <strong data-i18n="metricArchiveTitle">交互归档</strong>
+          <p data-i18n="metricArchiveBody">通过分类筛选、项目详情与图像浏览，让作品集像一个可进入的展览空间。</p>
+        </div>
+      </section>
+
+      <section class="work-section scroll-reveal" id="work">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow" data-i18n="selectedEyebrow">快速浏览</p>
+            <h2 data-i18n="selectedTitle">快速浏览</h2>
+          </div>
+        </div>
+        <div
+          class="quick-browse"
+          id="selected-grid"
+          tabindex="0"
+          role="region"
+          aria-label="快速浏览作品"
+        ></div>
+        <p class="quick-browse-hint" data-i18n="quickBrowseHint">自动浏览中 · 拖拽探索 · 点击查看作品</p>
+      </section>
+
+      <section class="archive-section scroll-reveal" id="archive">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow" data-i18n="archiveEyebrow">分类归档</p>
+            <h2 data-i18n="archiveTitle">作品归档</h2>
+          </div>
+          <p class="section-note" data-i18n="archiveNote">此板块容纳了所有的设计作品，点击即可查看。</p>
+        </div>
+        <div class="archive-grid" id="archive-grid" aria-live="polite"></div>
+      </section>
+
+      <section class="awards-section scroll-reveal" id="awards">
+        <div class="awards-light-rays" id="awards-light-rays" aria-hidden="true"></div>
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow" data-i18n="awardsEyebrow">获奖时间线</p>
+            <h2 data-i18n="awardsTitle">用结果证明设计能力</h2>
+          </div>
+        </div>
+        <div
+          class="certificate-gallery"
+          id="certificate-gallery"
+          tabindex="0"
+          role="region"
+          aria-label="获奖证书画廊，可滚动或拖拽浏览"
+        ></div>
+        <p class="certificate-gallery-hint">拖拽或使用方向键浏览部分获奖证书</p>
+      </section>
+
+      <section class="profile-section scroll-reveal" id="about">
+        <div class="profile-copy">
+          <p class="eyebrow" data-i18n="profileEyebrow">个人简介</p>
+          <h2 data-i18n="profileTitle">贾恩棚 / 视觉传达设计</h2>
+          <p data-i18n="profileBody">
+            主修视觉传达设计，具备扎实的平面设计、版式排版与品牌视觉创作功底。熟练运用 PS、AI、PR、ID 与 AIGC 等工具，擅长品牌设计、海报设计、文创衍生、视觉排版与制作。
+          </p>
+          <div class="profile-highlights" aria-label="简历摘要">
+            <div>
+              <span data-i18n="profileHighlightSchoolLabel">院校</span>
+              <strong data-i18n="profileHighlightSchoolValue">海南师范大学</strong>
+            </div>
+            <div>
+              <span data-i18n="profileHighlightMajorLabel">专业</span>
+              <strong data-i18n="profileHighlightMajorValue">视觉传达设计</strong>
+            </div>
+            <div>
+              <span data-i18n="profileHighlightAwardLabel">荣誉</span>
+              <strong data-i18n="profileHighlightAwardValue">多项国奖省奖</strong>
+            </div>
+          </div>
+        </div>
+        <div class="profile-meta">
+          <dl>
+            <div>
+              <dt data-i18n="contactNameLabel">姓名</dt>
+              <dd data-i18n="contactNameValue">贾恩棚 / Jia En Peng</dd>
+            </div>
+            <div>
+              <dt data-i18n="contactAgeLabel">年龄</dt>
+              <dd data-i18n="contactAgeValue">22</dd>
+            </div>
+            <div>
+              <dt data-i18n="contactPhoneLabel">电话</dt>
+              <dd><a href="tel:+8618431111686" data-i18n="contactPhoneValue">184-3111-1686</a></dd>
+            </div>
+            <div>
+              <dt data-i18n="contactEmailLabel">邮箱</dt>
+              <dd><a href="mailto:962889701@qq.com" data-i18n="contactEmailValue">962889701@qq.com</a></dd>
+            </div>
+            <div>
+              <dt data-i18n="contactLocationLabel">地址</dt>
+              <dd data-i18n="contactLocationValue">河北省石家庄市</dd>
+            </div>
+            <div>
+              <dt data-i18n="resumeLinkLabel">简历</dt>
+              <dd><a href="./个人简历.jpg" target="_blank" rel="noreferrer" data-i18n="resumeLinkValue">点击查看完整简历图</a></dd>
+            </div>
+          </dl>
+        </div>
+        <div class="resume-grid">
+          <article class="resume-block resume-block-wide">
+            <div class="resume-block-heading">
+              <span>01</span>
+              <h3 data-i18n="resumeEducationTitle">教育背景</h3>
+            </div>
+            <div class="resume-entry">
+              <header>
+                <span data-i18n="educationPeriod">2023.09 - 2027.06</span>
+                <strong data-i18n="educationSchool">海南师范大学 / 本科</strong>
+              </header>
+              <p data-i18n="educationMajor">视觉传达设计专业，GPA 4.0/5.0（专业前 10%）。</p>
+              <p data-i18n="educationCourses">主修课程：版式设计、品牌设计、包装设计、字体设计、信息可视化设计、海报设计、摄影基础、IP 形象设计等。</p>
+            </div>
+          </article>
+
+          <article class="resume-block">
+            <div class="resume-block-heading">
+              <span>02</span>
+              <h3 data-i18n="resumeExperienceTitle">实践经历</h3>
+            </div>
+            <div class="resume-entry">
+              <header>
+                <span data-i18n="experiencePeriod">2025.07 - 09</span>
+                <strong data-i18n="experienceCompany">石家庄市艾帆服饰有限公司 / 美工设计师</strong>
+              </header>
+              <ul>
+                <li data-i18n="experiencePointOne">绘制服饰产品效果图，展现产品版型与设计亮点，输出商用视觉素材。</li>
+                <li data-i18n="experiencePointTwo">负责企业网页优化改版，调整页面布局细节，提升整体浏览视觉体验。</li>
+                <li data-i18n="experiencePointThree">优化品牌 LOGO，结合行业特性打造专属标识，增强品牌辨识度。</li>
+                <li data-i18n="experiencePointFour">协同团队统筹视觉风格，完善品牌视觉体系，塑造统一品牌形象。</li>
+              </ul>
+            </div>
+          </article>
+
+          <article class="resume-block">
+            <div class="resume-block-heading">
+              <span>03</span>
+              <h3 data-i18n="resumeSkillsTitle">专业技能</h3>
+            </div>
+            <div class="skill-stack">
+              <span>Ps</span>
+              <span>Ai</span>
+              <span>Pr</span>
+              <span>Id</span>
+              <span>AIGC</span>
+            </div>
+            <dl class="skill-list">
+              <div>
+                <dt data-i18n="skillDirectionLabel">设计方向</dt>
+                <dd data-i18n="skillDirectionValue">品牌系统、海报设计、包装设计、IP 形象、版式排版、文创衍生</dd>
+              </div>
+              <div>
+                <dt data-i18n="skillMethodLabel">工作方式</dt>
+                <dd data-i18n="skillMethodValue">注重审美表达与落地实用性的结合，擅长从用户角度出发思考问题。</dd>
+              </div>
+            </dl>
+          </article>
+
+          <article class="resume-block resume-block-wide">
+            <div class="resume-block-heading">
+              <span>04</span>
+              <h3 data-i18n="resumeAwardsTitle">获奖证书</h3>
+            </div>
+            <div class="awards-layout">
+              <div>
+                <h4 data-i18n="competitionAwardsTitle">竞赛类</h4>
+                <ol class="resume-list">
+                  <li>
+                    <a href="./证明材料/1.2025年：获得中国好创意大赛国赛一等奖.jpg" target="_blank" rel="noreferrer" data-i18n="awardOne">2025 中国好创意大赛 全国总决赛一等奖</a>
+                  </li>
+                  <li>
+                    <a href="./证明材料/2.2025年：获得中国好创意大赛清正廉洁专项赛国赛一等奖.jpg" target="_blank" rel="noreferrer" data-i18n="awardTwo">2025 中国好创意大赛清正廉洁专项赛 全国总决赛一等奖</a>
+                  </li>
+                  <li>
+                    <a href="./证明材料/3.2026年：获得中国好创意大赛个人IP专项赛国赛一等奖.png" target="_blank" rel="noreferrer" data-i18n="awardThree">2026 中国好创意大赛个人 IP 专项赛 全国总决赛一等奖</a>
+                  </li>
+                  <li>
+                    <a href="./证明材料/2026中国好创意未来包装创新专项大赛优秀奖-白象未来探索系列.png" target="_blank" rel="noreferrer" data-i18n="awardWhiteElephantPackaging">2026 中国好创意未来包装创新专项大赛 全国总决赛优秀奖</a>
+                  </li>
+                  <li>
+                    <a href="./证明材料/8.2025年获得未来设计师省赛二等奖奖（虛拟IP 及表情包设计）.jpg" target="_blank" rel="noreferrer" data-i18n="awardSix">2025 “未来设计师”省赛二等奖（虚拟 IP 设计）</a>
+                  </li>
+                  <li>
+                    <a href="./证明材料/9.2025年：获得未来设计师省赛二等奖奖（人居环境规划与设计）.jpg" target="_blank" rel="noreferrer" data-i18n="awardSeven">2025 “未来设计师”省赛二等奖（人居环境规划与设计）</a>
+                  </li>
+                  <li>
+                    <a href="./证明材料/2026中国大学生文化创意设计大赛国赛一等奖-织黎万象.png" target="_blank" rel="noreferrer" data-i18n="awardCultureNational">2026 中国大学生文化创意设计大赛 全国总决赛一等奖</a>
+                  </li>
+                  <li>
+                    <a href="./证明材料/2026中国大学生文化创意设计大赛省赛一等奖-织黎万象.png" target="_blank" rel="noreferrer" data-i18n="awardCultureProvincial">2026 中国大学生文化创意设计大赛 省赛一等奖</a>
+                  </li>
+                  <li>
+                    <a href="./证明材料/10.2025年：获得中国大学生文化创意设计大赛省赛三等奖.jpg" target="_blank" rel="noreferrer" data-i18n="awardEight">2025 中国大学生文化创意设计大赛 省赛三等奖</a>
+                  </li>
+                  <li>
+                    <a href="./证明材料/4.2025年第五届ICAD国际当代青年美术设计大赛国赛铜奖.jpg" target="_blank" rel="noreferrer" data-i18n="awardFour">2025 第五届 ICAD 国际当代青年美术设计大赛 国赛铜奖</a>
+                  </li>
+                  <li>
+                    <a href="./证明材料/5. 2025年：“华夏奖”全国设计大赛国赛优秀奖.jpg" target="_blank" rel="noreferrer" data-i18n="awardFive">2025 “华夏奖”全国设计大赛 国赛优秀奖</a>
+                  </li>
+                  <li>
+                    <a href="./证明材料/11.2024年度：海南省“全民参与，申遗有我”绘画与摄影活动省级三等奖.jpg" target="_blank" rel="noreferrer" data-i18n="awardNine">2024 海南省“全民参与，申遗有我”绘画与摄影活动 省级三等奖</a>
+                  </li>
+                </ol>
+              </div>
+              <div>
+                <h4 data-i18n="honorAwardsTitle">荣誉证书类</h4>
+                <ol class="resume-list">
+                  <li>
+                    <a href="./证明材料/高中美术教师资格证.jpg" target="_blank" rel="noreferrer" data-i18n="honorOne">2025 年 12 月 高中美术教师资格证</a>
+                  </li>
+                  <li>
+                    <a href="./证明材料/全国三维数字化技术应用能力V5等级认证.jpg" target="_blank" rel="noreferrer" data-i18n="honorTwo">2025 年 9 月 全国三维数字化技术应用能力 V5 等级认证</a>
+                  </li>
+                </ol>
+                <details class="resume-more">
+                  <summary data-i18n="certificateMoreSummary">查看更多证书与校级荣誉</summary>
+                  <ol class="resume-list resume-list-compact">
+                  <li>
+                    <a href="./证明材料/c874c1221da3a656aad304541496d4ef.jpg" target="_blank" rel="noreferrer" data-i18n="honorThreeTopLeague">十佳共青团员</a><span data-i18n="inlineSeparator">、</span><a href="./证明材料/12.2023-2024 年度：校级“优秀共青团员”称号.jpg" target="_blank" rel="noreferrer" data-i18n="honorThreeLeagueMember">优秀共青团员</a><span data-i18n="inlineSeparator">、</span><a href="./证明材料/14. 2024-2025年度：校级“优秀共青团干部”.jpg" target="_blank" rel="noreferrer" data-i18n="honorThreeLeagueCadre">优秀共青团干部</a>
+                  </li>
+                  <li>
+                    <a href="./证明材料/15. 2025-2026年度：青年马克思主义者培养工程高级班“优秀学员” 号.jpg" target="_blank" rel="noreferrer" data-i18n="honorFour">青年马克思主义者培养工程高级班优秀学员</a>
+                  </li>
+                  <li>
+                    <a href="./证明材料/16. 2023-2024 学年：校级一等奖学金、“优秀三好学生”称号.jpg" target="_blank" rel="noreferrer" data-i18n="honorFive">校级一等奖学金、优秀三好学生</a>
+                  </li>
+                  <li>
+                    <a href="./证明材料/17.2024—2025学年获校级二等奖学金，被评为“三好学生”获得二等奖学金.JPG" target="_blank" rel="noreferrer" data-i18n="honorSixScholarship">校级二等奖学金、三好学生</a><span data-i18n="inlineSeparator">、</span><a href="./证明材料/6.2024-2025年度国家励志奖学金.JPG" target="_blank" rel="noreferrer" data-i18n="honorSixEncouragement">国家励志奖学金</a>
+                  </li>
+                  <li>
+                    <a href="./证明材料/团委部长.JPG" target="_blank" rel="noreferrer" data-i18n="honorSeven">曾担任团委学生部长</a>
+                  </li>
+                  </ol>
+                </details>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <div class="project-modal" id="project-modal" aria-hidden="true">
+      <div class="modal-backdrop" data-close-modal></div>
+      <article class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <button class="modal-close" type="button" data-close-modal aria-label="Close">×</button>
+        <div class="modal-media">
+          <img id="modal-image" alt="" />
+          <iframe class="modal-pdf" id="modal-pdf" title="PDF preview" hidden></iframe>
+        </div>
+        <div class="modal-content">
+          <p class="modal-kicker" id="modal-category"></p>
+          <h2 id="modal-title"></h2>
+          <p id="modal-description"></p>
+          <div class="modal-skills" id="modal-skills" aria-label="项目能力标签"></div>
+          <div class="modal-case" id="modal-case"></div>
+          <div class="modal-meta">
+            <span id="modal-count"></span>
+            <a class="modal-original-link" id="modal-original" href="#" data-i18n="originalImageLabel">预览高清原图</a>
+          </div>
+          <div class="gallery-strip" id="modal-gallery"></div>
+        </div>
+      </article>
+    </div>
+
+    <div class="image-viewer" id="image-viewer" aria-hidden="true">
+      <div class="image-viewer-backdrop" data-close-viewer></div>
+      <figure class="image-viewer-panel" role="dialog" aria-modal="true" aria-label="高清原图预览">
+        <button class="image-viewer-close" type="button" data-close-viewer aria-label="关闭高清原图">×</button>
+        <div class="image-viewer-tools gooey-viewer-tools" aria-label="图片缩放工具">
+          <button class="image-viewer-tool" type="button" data-viewer-zoom-out aria-label="缩小">缩小</button>
+          <button class="image-viewer-tool image-viewer-zoom-label is-active" type="button" data-viewer-zoom-reset aria-label="重置缩放" id="viewer-zoom-label">100%</button>
+          <button class="image-viewer-tool" type="button" data-viewer-zoom-in aria-label="放大">放大</button>
+        </div>
+        <button class="image-viewer-nav image-viewer-prev" type="button" data-viewer-prev aria-label="上一张">‹</button>
+        <button class="image-viewer-nav image-viewer-next" type="button" data-viewer-next aria-label="下一张">›</button>
+        <div class="image-viewer-stage" id="image-viewer-stage">
+          <img id="viewer-image" alt="" />
+        </div>
+        <figcaption id="viewer-caption"></figcaption>
+      </figure>
+    </div>
+
+    <script src="./assets/vendor/three.min.js?v=liquid-ether-v10"></script>
+    <script src="./assets/vendor/liquid-ether.js?v=liquid-ether-v11"></script>
+    <script src="./app.js?v=liquid-ether-v6"></script>
+    <script src="./assets/vendor/liquid-ether-bootstrap.js?v=liquid-ether-v11"></script>
+  </body>
+</html>
