@@ -75,8 +75,6 @@ const copy = {
     contactEmailValue: "962889701@qq.com",
     contactLocationLabel: "地址",
     contactLocationValue: "河北省石家庄市",
-    resumeLinkLabel: "简历",
-    resumeLinkValue: "点击查看完整简历图",
     resumeEducationTitle: "教育背景",
     educationPeriod: "2023.09 - 2027.06",
     educationSchool: "海南师范大学 / 本科",
@@ -226,8 +224,6 @@ const copy = {
     contactEmailValue: "962889701@qq.com",
     contactLocationLabel: "Location",
     contactLocationValue: "Shijiazhuang, Hebei",
-    resumeLinkLabel: "Resume",
-    resumeLinkValue: "Open resume image",
     resumeEducationTitle: "Education",
     educationPeriod: "2023.09 - 2027.06",
     educationSchool: "Hainan Normal University / Bachelor",
@@ -401,6 +397,50 @@ const projects = [
       "围绕品牌视觉规范展开，涵盖品牌版式、媒介投放、社交数字系统与基础物料。作品强调视觉规范的系统性、跨媒介应用的一致性，以及品牌在商业传播场景中的落地能力。",
     descriptionEn:
       "This brand visual system covers layout rules, media placement, digital and social assets, and basic brand materials with an emphasis on cross-media consistency."
+  },
+  {
+    id: "qindada-vi-manual",
+    titleZh: "親搭搭VI手册",
+    titleEn: "Qindada VI Manual",
+    categoryZh: "品牌视觉 / VI手册 / 应用系统",
+    categoryEn: "Brand Identity / VI Manual / Application System",
+    tags: ["brand"],
+    folder: "./assets/works/01_Selected_Works/13_qindada-vi-manual__親搭搭VI手册",
+    pdfFile: "./親搭搭VI.pdf",
+    images: ["01_work.png"],
+    descriptionZh:
+      "围绕「親搭搭」品牌视觉识别展开，涵盖标志规范、色彩系统、辅助图形、字体应用与产品延展，呈现品牌视觉系统的完整搭建过程。",
+    descriptionEn:
+      "A complete VI manual for Qindada, covering logo rules, color system, supporting graphics, typography, and product applications."
+  },
+  {
+    id: "yanyan-vi-manual",
+    titleZh: "盐砚VI视觉识别手册",
+    titleEn: "Yanyan VI Manual",
+    categoryZh: "品牌视觉 / VI手册 / 应用系统",
+    categoryEn: "Brand Identity / VI Manual / Application System",
+    tags: ["brand"],
+    folder: "./assets/works/01_Selected_Works/14_yanyan-vi-manual__盐砚VI手册",
+    pdfFile: "./盐砚VI.pdf",
+    images: ["01_work.png"],
+    descriptionZh:
+      "围绕「盐砚」品牌视觉识别展开，系统呈现基础规范、文化语境、图形语言、包装物料与品牌应用场景，强化品牌调性与视觉一致性。",
+    descriptionEn:
+      "A VI manual for Yanyan that presents identity rules, cultural context, graphic language, packaging materials, and brand application scenarios."
+  },
+  {
+    id: "yanyan-brand-system",
+    titleZh: "盐砚品牌系统与包装设计",
+    titleEn: "Yanyan Brand System and Packaging Design",
+    categoryZh: "品牌视觉 / 包装设计 / 空间应用",
+    categoryEn: "Brand Identity / Packaging Design / Spatial Application",
+    tags: ["brand", "packaging"],
+    folder: "./assets/works/01_Selected_Works/15_yanyan-brand-system__盐砚品牌系统与包装设计",
+    images: ["01_work.jpg", "02_work.jpg", "03_work.jpg", "04_work.jpg"],
+    descriptionZh:
+      "以海南海盐文化为核心，围绕品牌概念、视觉识别、产品体系、包装设计与空间传播展开。作品将火山岩盐槽、古法晒盐、海盐晶体等地域元素转化为品牌视觉与礼品包装系统。",
+    descriptionEn:
+      "A brand and packaging system rooted in Hainan sea-salt culture, covering brand concept, visual identity, product packaging, spatial applications, and communication touchpoints."
   },
   {
     id: "li-island-seasons-packaging",
@@ -692,6 +732,9 @@ const archiveGroups = [
     code: "BRAND",
     projectIds: [
       "brand-visual-system",
+      "qindada-vi-manual",
+      "yanyan-vi-manual",
+      "yanyan-brand-system",
       "li-island-seasons-packaging",
       "white-elephant-future-exploration-packaging",
       "teacher-wine-packaging",

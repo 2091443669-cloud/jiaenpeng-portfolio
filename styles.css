@@ -2755,6 +2755,18 @@ html.is-page-entered .hero-liquid .hero-index {
   color: var(--text);
   font-size: 1.6rem;
   line-height: 1;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease;
+}
+
+.modal-close:hover,
+.modal-close:focus-visible {
+  border-color: #fff;
+  background: color-mix(in srgb, #fff 14%, transparent);
+  color: #fff;
+  outline: none;
 }
 
 .modal-media {
@@ -3232,6 +3244,13 @@ html[lang="en"] .resume-block-heading h3 {
   background: var(--accent);
   color: #11110f;
   outline: none;
+}
+
+.image-viewer-close:hover,
+.image-viewer-close:focus-visible {
+  border-color: #fff;
+  background: color-mix(in srgb, #fff 14%, transparent);
+  color: #fff;
 }
 
 .image-viewer-panel figcaption {
