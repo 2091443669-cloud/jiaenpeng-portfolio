@@ -129,11 +129,10 @@
 
   function preloadAround(index) {
     const items = thumbs();
-    [-1, 1].forEach((offset) => {
+    [-2, -1, 0, 1, 2].forEach((offset) => {
       const img = items[(index + offset + items.length) % items.length]?.querySelector("img");
       if (!img?.src) return;
-      const preload = new Image();
-      preload.src = img.src;
+      window.preloadPortfolioImage?.(img.src);
     });
   }
 
@@ -141,6 +140,8 @@
     const items = thumbs();
     if (!items.length) return;
     const next = (index + items.length) % items.length;
+    const nextImage = items[next]?.querySelector("img")?.src;
+    if (nextImage) window.preloadPortfolioImage?.(nextImage);
     items[next]?.click();
     window.requestAnimationFrame(() => {
       updateDots();
@@ -210,6 +211,7 @@
     (event) => {
       if (!isLayerOpen(modal) || event.pointerType === "mouse" || thumbs().length < 2) return;
       if (modalPdf && !modalPdf.hidden) return;
+      if (event.target.closest(".modal-image-dot")) return;
       modalSwipe = {
         id: event.pointerId,
         startX: event.clientX,
@@ -222,6 +224,7 @@
       } catch {
         // Synthetic or interrupted touch streams may not be capturable.
       }
+      event.stopImmediatePropagation();
     },
     true
   );
@@ -235,8 +238,12 @@
       const absX = Math.abs(dx);
       const absY = Math.abs(dy);
 
-      if (!modalSwipe.axis && Math.max(absX, absY) > 8) {
-        modalSwipe.axis = absX > absY * 1.08 ? "x" : "y";
+      if (!modalSwipe.axis && Math.max(absX, absY) > 5) {
+        if (absX > absY * 0.72) {
+          modalSwipe.axis = "x";
+        } else if (absY > absX * 1.45) {
+          modalSwipe.axis = "y";
+        }
       }
 
       if (modalSwipe.axis !== "x") return;
@@ -247,9 +254,11 @@
       modalMedia.classList.add("is-swipe-intent");
 
       if (modalImage) {
-        const progress = Math.min(absX / Math.max(window.innerWidth * 0.62, 260), 1);
+        const mediaWidth = Math.max(modalMedia.clientWidth, 1);
+        const offset = Math.max(mediaWidth * -0.42, Math.min(mediaWidth * 0.42, dx * 0.92));
+        const progress = Math.min(Math.abs(offset) / Math.max(mediaWidth, 1), 0.34);
         modalImage.style.transition = "none";
-        modalImage.style.transform = `translate3d(${dx}px, 0, 0) scale(${1 - progress * 0.05})`;
+        modalImage.style.transform = `translate3d(${offset}px, 0, 0) scale(${1 - progress * 0.05})`;
         modalImage.style.opacity = String(1 - progress * 0.45);
       }
     },
@@ -265,7 +274,7 @@
         const axis = modalSwipe.axis;
         modalSwipe = null;
 
-        if (axis === "x" && Math.abs(dx) > 42) {
+        if (axis === "x" && Math.abs(dx) > Math.min(58, Math.max(34, modalMedia.clientWidth * 0.1))) {
           event.preventDefault();
           event.stopImmediatePropagation();
           goToImage(activeIndex() + (dx < 0 ? 1 : -1));

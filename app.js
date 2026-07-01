@@ -1230,10 +1230,13 @@ let viewerPan = { x: 0, y: 0 };
 let viewerItems = [];
 let viewerIndex = 0;
 let viewerDrag = null;
+let viewerSwipe = null;
+let viewerSwitching = false;
 let lastProjectTrigger = null;
 let lastViewerTrigger = null;
 let modalSwipe = null;
 let suppressModalImageClick = false;
+const imagePreloadCache = new Map();
 
 function mountLiquidEther() {
   if (!liquidEtherMount || !window.LiquidEtherReact || !window.THREE) return;
@@ -3430,9 +3433,12 @@ function openProject(projectId, sourceElement = null) {
 }
 
 function setModalImage(project, image, activeThumb) {
-  modalImage.src = previewPath(project, image);
+  const source = previewPath(project, image);
+  modalImage.decoding = "async";
+  modalImage.src = source;
   modalImage.alt = projectTitle(project);
   modalOriginal.href = imagePath(project, image);
+  preloadImage(source);
 
   if (activeThumb) {
     modalGallery.querySelectorAll(".thumb-btn").forEach((button) => button.classList.remove("is-active"));
@@ -3502,11 +3508,10 @@ function preloadModalNeighbors(project = activeProject) {
   if (!project?.images?.length || project.pdfFile) return;
 
   const currentIndex = currentModalImageIndex(project);
-  [-1, 1].forEach((direction) => {
+  [-2, -1, 0, 1, 2].forEach((direction) => {
     const image = project.images[(currentIndex + direction + project.images.length) % project.images.length];
     if (!image) return;
-    const preload = new Image();
-    preload.src = previewPath(project, image);
+    preloadImage(previewPath(project, image));
   });
 }
 
@@ -3523,7 +3528,7 @@ function closeProject() {
   quickBrowse?.restoreHeldPosition();
   modalSwipe = null;
   suppressModalImageClick = false;
-  modalMedia.classList.remove("is-swiping");
+  modalMedia.classList.remove("is-swiping", "is-swipe-intent");
   modalImage.style.transition = "";
   modalImage.style.transform = "";
   modalImage.style.opacity = "";
@@ -3561,6 +3566,29 @@ function clearBrowserSelection() {
   if (selection?.rangeCount) selection.removeAllRanges();
 }
 
+function preloadImage(src) {
+  if (!src) return Promise.resolve();
+  const cached = imagePreloadCache.get(src);
+  if (cached) return cached.promise;
+
+  const image = new Image();
+  image.decoding = "async";
+  const promise = new Promise((resolve) => {
+    image.onload = () => {
+      const decode = typeof image.decode === "function"
+        ? image.decode().catch(() => {})
+        : Promise.resolve();
+      decode.finally(resolve);
+    };
+    image.onerror = resolve;
+  });
+  image.src = src;
+  imagePreloadCache.set(src, { image, promise });
+  return promise;
+}
+
+window.preloadPortfolioImage = preloadImage;
+
 function updateViewerTransform() {
   viewerImage.style.transform = `translate3d(${viewerPan.x}px, ${viewerPan.y}px, 0) scale(${viewerZoom})`;
   viewerImage.classList.toggle("is-zoomed", viewerZoom > 1);
@@ -3587,18 +3615,33 @@ function renderImageViewer() {
 
   const hasMultiple = viewerItems.length > 1;
   resetViewerZoom();
+  viewerImage.decoding = "async";
   viewerImage.src = item.src;
   viewerImage.alt = item.caption;
   viewerCaption.textContent = hasMultiple ? `${item.caption} · ${viewerIndex + 1}/${viewerItems.length}` : item.caption;
   viewerPrev.hidden = !hasMultiple;
   viewerNext.hidden = !hasMultiple;
+  preloadViewerNeighbors();
 }
 
 function moveImageViewer(direction) {
-  if (viewerItems.length < 2) return;
+  if (viewerItems.length < 2 || viewerSwitching) return;
 
+  viewerSwitching = true;
   viewerIndex = (viewerIndex + direction + viewerItems.length) % viewerItems.length;
   renderImageViewer();
+  window.setTimeout(() => {
+    viewerSwitching = false;
+  }, 130);
+}
+
+function preloadViewerNeighbors(index = viewerIndex) {
+  if (viewerItems.length < 2) return;
+
+  [-1, 0, 1].forEach((offset) => {
+    const item = viewerItems[(index + offset + viewerItems.length) % viewerItems.length];
+    if (item?.src) preloadImage(item.src);
+  });
 }
 
 function openImageViewer(src, caption, items, startIndex) {
@@ -3912,9 +3955,24 @@ viewerStage.addEventListener("wheel", (event) => {
 });
 
 viewerStage.addEventListener("pointerdown", (event) => {
+  if (!imageViewer.classList.contains("is-open")) return;
+  if (event.pointerType !== "mouse" && viewerZoom <= 1 && viewerItems.length > 1) {
+    viewerSwipe = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      lastX: event.clientX,
+      lastTime: performance.now(),
+      velocity: 0,
+      gesture: "pending"
+    };
+    viewerStage.setPointerCapture?.(event.pointerId);
+    return;
+  }
   if (viewerZoom <= 1) return;
 
   viewerDrag = {
+    pointerId: event.pointerId,
     startX: event.clientX,
     startY: event.clientY,
     panX: viewerPan.x,
@@ -3924,7 +3982,38 @@ viewerStage.addEventListener("pointerdown", (event) => {
 });
 
 viewerStage.addEventListener("pointermove", (event) => {
+  if (viewerSwipe && event.pointerId === viewerSwipe.pointerId) {
+    const deltaX = event.clientX - viewerSwipe.startX;
+    const deltaY = event.clientY - viewerSwipe.startY;
+    const absX = Math.abs(deltaX);
+    const absY = Math.abs(deltaY);
+
+    if (viewerSwipe.gesture === "pending" && Math.max(absX, absY) > 5) {
+      if (absX > absY * 0.72) {
+        viewerSwipe.gesture = "swipe";
+        imageViewer.classList.add("is-viewer-swiping");
+      } else if (absY > absX * 1.45) {
+        viewerSwipe = null;
+        resetViewerSwipeOffset();
+        return;
+      }
+    }
+
+    if (viewerSwipe.gesture !== "swipe") return;
+
+    if (event.cancelable) event.preventDefault();
+    const now = performance.now();
+    const deltaTime = Math.max(16, now - viewerSwipe.lastTime);
+    const stepVelocity = (event.clientX - viewerSwipe.lastX) / deltaTime;
+    viewerSwipe.velocity = viewerSwipe.velocity * 0.72 + stepVelocity * 0.28;
+    viewerSwipe.lastX = event.clientX;
+    viewerSwipe.lastTime = now;
+    setViewerSwipeOffset(deltaX);
+    return;
+  }
+
   if (!viewerDrag) return;
+  if (event.pointerId !== viewerDrag.pointerId) return;
 
   viewerPan = {
     x: viewerDrag.panX + event.clientX - viewerDrag.startX,
@@ -3933,17 +4022,76 @@ viewerStage.addEventListener("pointermove", (event) => {
   updateViewerTransform();
 });
 
-viewerStage.addEventListener("pointerup", () => {
+viewerStage.addEventListener("pointerup", (event) => {
+  finishViewerSwipe(event);
   viewerDrag = null;
 });
 
-viewerStage.addEventListener("pointercancel", () => {
+viewerStage.addEventListener("pointercancel", (event) => {
+  cancelViewerSwipe(event);
   viewerDrag = null;
 });
 
-viewerStage.addEventListener("pointerleave", () => {
+viewerStage.addEventListener("pointerleave", (event) => {
+  if (viewerSwipe && event.pointerId === viewerSwipe.pointerId) return;
   viewerDrag = null;
 });
+
+function setViewerSwipeOffset(deltaX) {
+  const width = Math.max(viewerStage.clientWidth, 1);
+  const offset = clamp(deltaX * 0.92, width * -0.38, width * 0.38);
+  const progress = Math.min(Math.abs(offset) / width, 0.34);
+
+  viewerImage.style.transition = "none";
+  viewerImage.style.transform = `translate3d(${offset}px, 0, 0) scale(${1 - progress * 0.045})`;
+  viewerImage.style.opacity = String(1 - progress * 0.48);
+}
+
+function resetViewerSwipeOffset() {
+  imageViewer.classList.remove("is-viewer-swiping");
+  viewerImage.style.transition = "transform 190ms cubic-bezier(0.22, 1, 0.36, 1), opacity 170ms ease";
+  viewerImage.style.opacity = "";
+  updateViewerTransform();
+  window.setTimeout(() => {
+    if (!viewerSwipe) viewerImage.style.transition = "";
+  }, 210);
+}
+
+function settleViewerSwipe(direction) {
+  const enterX = direction > 0 ? 26 : -26;
+
+  imageViewer.classList.remove("is-viewer-swiping");
+  moveImageViewer(direction);
+  viewerImage.style.transition = "none";
+  viewerImage.style.transform = `translate3d(${enterX}px, 0, 0) scale(0.985)`;
+  viewerImage.style.opacity = "0.78";
+  requestAnimationFrame(resetViewerSwipeOffset);
+}
+
+function finishViewerSwipe(event) {
+  if (!viewerSwipe || event.pointerId !== viewerSwipe.pointerId) return;
+
+  const swipe = viewerSwipe;
+  const deltaX = event.clientX - swipe.startX;
+  const deltaY = event.clientY - swipe.startY;
+  const threshold = Math.min(64, Math.max(36, viewerStage.clientWidth * 0.12));
+  const flick = Math.abs(swipe.velocity) > 0.5 && Math.abs(deltaX) > 18;
+  const shouldChange = swipe.gesture === "swipe" && Math.abs(deltaX) > Math.abs(deltaY) && (Math.abs(deltaX) >= threshold || flick);
+  viewerSwipe = null;
+
+  if (!shouldChange) {
+    resetViewerSwipeOffset();
+    return;
+  }
+
+  settleViewerSwipe(deltaX < 0 ? 1 : -1);
+}
+
+function cancelViewerSwipe(event) {
+  if (!viewerSwipe || event.pointerId !== viewerSwipe.pointerId) return;
+  viewerSwipe = null;
+  resetViewerSwipeOffset();
+}
 
 function setModalSwipeOffset(deltaX) {
   const mediaWidth = Math.max(modalMedia.clientWidth, 1);
@@ -3956,7 +4104,7 @@ function setModalSwipeOffset(deltaX) {
 }
 
 function resetModalSwipeOffset() {
-  modalMedia.classList.remove("is-swiping");
+  modalMedia.classList.remove("is-swiping", "is-swipe-intent");
   modalImage.style.transition = "transform 190ms cubic-bezier(0.22, 1, 0.36, 1), opacity 170ms ease";
   modalImage.style.transform = "";
   modalImage.style.opacity = "";
@@ -3968,7 +4116,7 @@ function resetModalSwipeOffset() {
 function settleModalSwipe(direction) {
   const enterX = direction > 0 ? 28 : -28;
 
-  modalMedia.classList.remove("is-swiping");
+  modalMedia.classList.remove("is-swiping", "is-swipe-intent");
   moveModalImage(direction);
   modalImage.style.transition = "none";
   modalImage.style.transform = `translate3d(${enterX}px, 0, 0) scale(0.985)`;
@@ -3997,11 +4145,11 @@ modalMedia.addEventListener("pointermove", (event) => {
   const absY = Math.abs(deltaY);
 
   if (modalSwipe.gesture === "pending" && Math.max(absX, absY) > 7) {
-    if (absX > absY * 1.08) {
+    if (absX > absY * 0.72) {
       modalSwipe.gesture = "swipe";
-      modalMedia.classList.add("is-swiping");
+      modalMedia.classList.add("is-swiping", "is-swipe-intent");
       modalMedia.setPointerCapture?.(event.pointerId);
-    } else if (absY > absX * 1.08) {
+    } else if (absY > absX * 1.45) {
       modalSwipe = null;
       return;
     }

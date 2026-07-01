@@ -59,7 +59,7 @@
     position: relative;
     overflow: hidden;
     contain: layout paint;
-    touch-action: pan-y;
+    touch-action: none;
   }
 
   .modal-media.is-swipe-intent {
@@ -68,6 +68,15 @@
 
   .modal-media img {
     object-fit: contain;
+    will-change: transform, opacity;
+  }
+
+  .image-viewer-stage {
+    overscroll-behavior: contain;
+    touch-action: none;
+  }
+
+  .image-viewer-stage img {
     will-change: transform, opacity;
   }
 
