@@ -1795,6 +1795,7 @@ class QuickBrowseDome {
     this.pointer = null;
     this.touch = null;
     this.touchMomentum = 0;
+    this.touchReleaseFollow = 0;
     this.holdSnapshot = null;
     this.suppressClick = false;
     this.lastInteraction = performance.now();
@@ -2058,8 +2059,7 @@ class QuickBrowseDome {
   releaseTouchMomentum(velocity) {
     const speed = Math.abs(velocity);
     if (speed < 0.004) return 0;
-    const boost = 0.88 + Math.min(speed / 0.12, 1) * 0.38;
-    return Math.sign(velocity) * Math.min(0.18, speed * boost);
+    return Math.sign(velocity) * Math.min(0.18, speed);
   }
 
   onTouchStart(event) {
@@ -2068,6 +2068,7 @@ class QuickBrowseDome {
     const sourceTile = event.target.closest(".quick-dome-tile");
     this.pointer = null;
     this.touchMomentum = 0;
+    this.touchReleaseFollow = 0;
     const now = performance.now();
     this.touch = {
       startX: touch.clientX,
@@ -2076,6 +2077,7 @@ class QuickBrowseDome {
       lastTime: now,
       startRotation: { ...this.targetRotation },
       velocity: 0,
+      releaseVelocity: 0,
       gesture: "pending",
       moved: false,
       projectId: sourceTile?.dataset.projectId || null,
@@ -2112,6 +2114,7 @@ class QuickBrowseDome {
     const deltaTime = Math.max(16, now - this.touch.lastTime);
     const stepVelocity = ((touch.clientX - this.touch.lastX) * this.touchRotationSpeed) / deltaTime;
     this.touch.velocity = this.touch.velocity * 0.78 + stepVelocity * 0.22;
+    this.touch.releaseVelocity = this.touch.velocity * 0.45 + stepVelocity * 0.55;
     this.touch.lastX = touch.clientX;
     this.touch.lastTime = now;
     this.targetRotation.y = this.touch.startRotation.y + dx * this.touchRotationSpeed;
@@ -2123,11 +2126,12 @@ class QuickBrowseDome {
 
   onTouchEnd(event) {
     if (!this.touch || event.touches.length) return;
-    const { moved, projectId, sourceTile, gesture, velocity } = this.touch;
+    const { moved, projectId, sourceTile, gesture, velocity, releaseVelocity } = this.touch;
     this.resetTouch();
     this.suppressClick = true;
     if (moved && gesture === "drag") {
-      this.touchMomentum = this.releaseTouchMomentum(velocity);
+      this.touchMomentum = this.releaseTouchMomentum(releaseVelocity || velocity);
+      this.touchReleaseFollow = this.touchMomentum ? 1 : 0;
       this.start();
     }
 
@@ -2321,10 +2325,11 @@ class QuickBrowseDome {
     if (this.raf) {
       window.cancelAnimationFrame(this.raf);
       this.raf = null;
-	    }
-	    this.targetRotation.y = this.rotation.y;
-	    this.touchMomentum = 0;
-	    this.resetPointer();
+    }
+    this.targetRotation.y = this.rotation.y;
+    this.touchMomentum = 0;
+    this.touchReleaseFollow = 0;
+    this.resetPointer();
 	    this.resetTouch();
 	    this.markInteraction();
     this.applyTransform();
@@ -2388,13 +2393,20 @@ class QuickBrowseDome {
       this.touchMomentum *= Math.exp(-delta * drag);
       if (Math.abs(this.touchMomentum) < 0.0005) this.touchMomentum = 0;
     }
-    if (!this.pointer && !this.touch && !this.touchMomentum && !this.holdSnapshot && timestamp - this.lastInteraction > 1800) {
+    if (!this.pointer && !this.touch && this.touchReleaseFollow > 0) {
+      this.touchReleaseFollow *= Math.exp(-delta * 0.009);
+      if (this.touchReleaseFollow < 0.001) this.touchReleaseFollow = 0;
+    }
+    if (!this.pointer && !this.touch && !this.touchMomentum && !this.touchReleaseFollow && !this.holdSnapshot && timestamp - this.lastInteraction > 1800) {
       this.targetRotation.y += delta * 0.0032;
     }
 
     const distance = this.targetRotation.y - this.rotation.y;
     if (Math.abs(distance) > 0.001) {
-      const ease = this.pointer?.pointerType === "touch" && this.pointer.gesture === "drag" && isMobileViewport()
+      const releaseEase = this.rotationEase + (this.touchRotationEase - this.rotationEase) * this.touchReleaseFollow;
+      const ease = this.touchReleaseFollow
+        ? releaseEase
+        : this.pointer?.pointerType === "touch" && this.pointer.gesture === "drag" && isMobileViewport()
         ? this.touchRotationEase
         : this.rotationEase;
       const follow = 1 - (1 - ease) ** (delta / (1000 / 60));
@@ -2604,6 +2616,7 @@ class CertificateGallery {
     this.pointer = null;
     this.touch = null;
     this.touchMomentum = 0;
+    this.touchReleaseFollow = 0;
     this.suppressClick = false;
     this.suppressClickUntil = 0;
     this.gestureLockThreshold = this.isMobileLayout ? 4 : 8;
@@ -2702,8 +2715,7 @@ class CertificateGallery {
   releaseTouchMomentum(velocity) {
     const speed = Math.abs(velocity);
     if (speed < 0.025) return 0;
-    const boost = 0.82 + Math.min(speed / 1.2, 1) * 0.42;
-    return Math.sign(velocity) * Math.min(2.4, speed * boost);
+    return Math.sign(velocity) * Math.min(2.4, speed);
   }
 
   setLanguage() {
@@ -2749,6 +2761,7 @@ class CertificateGallery {
   onMotionPreferenceChange(event) {
     this.prefersReducedMotion = event.matches;
     this.touchMomentum = 0;
+    this.touchReleaseFollow = 0;
     if (this.prefersReducedMotion) {
       if (this.raf) window.cancelAnimationFrame(this.raf);
       this.raf = null;
@@ -2763,6 +2776,7 @@ class CertificateGallery {
     const touch = event.touches[0];
     this.pointer = null;
     this.touchMomentum = 0;
+    this.touchReleaseFollow = 0;
     const now = performance.now();
     this.touch = {
       startX: touch.clientX,
@@ -2771,6 +2785,7 @@ class CertificateGallery {
       lastTime: now,
       startTarget: this.scroll.target,
       velocity: 0,
+      releaseVelocity: 0,
       gesture: "pending",
       moved: false,
       cardIndex: Number(event.target.closest(".certificate-gallery-card")?.dataset.certificateIndex)
@@ -2807,6 +2822,7 @@ class CertificateGallery {
     const touchDragSpeed = 0.82;
     const stepVelocity = ((this.touch.lastX - touch.clientX) * this.scrollSpeed * touchDragSpeed) / deltaTime;
     this.touch.velocity = this.touch.velocity * 0.76 + stepVelocity * 0.24;
+    this.touch.releaseVelocity = this.touch.velocity * 0.45 + stepVelocity * 0.55;
     this.touch.lastX = touch.clientX;
     this.touch.lastTime = now;
     this.scroll.target = this.touch.startTarget + distance * this.scrollSpeed * touchDragSpeed;
@@ -2816,10 +2832,11 @@ class CertificateGallery {
 
   onTouchEnd(event) {
     if (!this.touch || event.touches.length) return;
-    const { moved, cardIndex, gesture, velocity } = this.touch;
+    const { moved, cardIndex, gesture, velocity, releaseVelocity } = this.touch;
     this.touch = null;
     if (moved && gesture === "drag") {
-      this.touchMomentum = this.releaseTouchMomentum(velocity);
+      this.touchMomentum = this.releaseTouchMomentum(releaseVelocity || velocity);
+      this.touchReleaseFollow = this.touchMomentum ? 1 : 0;
       this.start();
     }
 
@@ -2921,9 +2938,10 @@ class CertificateGallery {
   }
 
 	  onLostPointerCapture() {
-	    const shouldSuppressClick = Boolean(this.pointer?.moved);
-	    this.pointer = null;
-	    this.touchMomentum = 0;
+    const shouldSuppressClick = Boolean(this.pointer?.moved);
+    this.pointer = null;
+    this.touchMomentum = 0;
+    this.touchReleaseFollow = 0;
 	    if (shouldSuppressClick) {
 	      this.suppressClick = true;
       this.suppressClickUntil = performance.now() + 800;
@@ -2975,10 +2993,15 @@ class CertificateGallery {
       this.touchMomentum *= Math.exp(-deltaTime * drag);
       if (Math.abs(this.touchMomentum) < 0.01) this.touchMomentum = 0;
     }
-    if (shouldAutoScroll && !this.pointer && !this.touch && !this.touchMomentum && timestamp - this.lastInteraction > this.autoResumeDelay) {
+    if (!this.pointer && !this.touch && this.touchReleaseFollow > 0) {
+      this.touchReleaseFollow *= Math.exp(-deltaTime * 0.01);
+      if (this.touchReleaseFollow < 0.001) this.touchReleaseFollow = 0;
+    }
+    if (shouldAutoScroll && !this.pointer && !this.touch && !this.touchMomentum && !this.touchReleaseFollow && timestamp - this.lastInteraction > this.autoResumeDelay) {
       this.scroll.target += deltaTime * this.autoSpeed;
     }
-    this.scroll.current += (this.scroll.target - this.scroll.current) * this.scrollEase;
+    const releaseEase = this.scrollEase + (0.5 - this.scrollEase) * this.touchReleaseFollow;
+    this.scroll.current += (this.scroll.target - this.scroll.current) * releaseEase;
     const halfViewport = this.width / 2 + this.cardWidth * 0.45;
 
     this.cards.forEach(({ element }, index) => {
