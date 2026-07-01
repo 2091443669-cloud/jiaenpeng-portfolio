@@ -1778,7 +1778,7 @@ class QuickBrowseDome {
     this.root = root;
     this.projects = this.shuffleProjects(projectsList.filter((project) => project.images?.length));
     this.isMobileLayout = isMobileViewport();
-    this.columns = this.isMobileLayout ? 24 : 30;
+    this.columns = 30;
     this.viewScale = 0.68;
     this.baseLatitudes = [-24, -8, 8, 24];
     // Adjacent columns are offset by exactly half of one row step.
@@ -1787,18 +1787,18 @@ class QuickBrowseDome {
     this.rotation = { x: 0, y: 0 };
     this.targetRotation = { y: 0 };
     this.rotationEase = 0.06;
-    this.touchRotationEase = 0.2;
+    this.touchRotationEase = this.isMobileLayout ? 0.34 : 0.2;
     this.pointerRotationSpeed = 0.07;
-    this.touchRotationSpeed = 0.13;
-    this.gestureLockThreshold = 7;
-    this.gestureLockRatio = 1.12;
+    this.touchRotationSpeed = this.isMobileLayout ? 0.2 : 0.13;
+    this.gestureLockThreshold = this.isMobileLayout ? 4 : 7;
+    this.gestureLockRatio = this.isMobileLayout ? 0.72 : 1.12;
     this.pointer = null;
     this.holdSnapshot = null;
     this.suppressClick = false;
     this.lastInteraction = performance.now();
     this.lastFrameTime = performance.now();
     this.lastPaintTime = 0;
-    this.frameInterval = this.isMobileLayout ? 1000 / 45 : 0;
+    this.frameInterval = 0;
     this.isVisible = true;
     this.raf = null;
 
@@ -1995,7 +1995,7 @@ class QuickBrowseDome {
     image.alt = "";
     image.draggable = false;
     image.decoding = "async";
-    image.loading = index < (this.isMobileLayout ? 12 : this.columns) ? "eager" : "lazy";
+    image.loading = index < (this.isMobileLayout ? 18 : this.columns) ? "eager" : "lazy";
     image.addEventListener(
       "error",
       () => {
@@ -2488,19 +2488,19 @@ class CertificateGallery {
     this.isMobileLayout = isMobileViewport();
     this.bend = bend;
     this.scrollSpeed = scrollSpeed;
-    this.scrollEase = scrollEase;
+    this.scrollEase = this.isMobileLayout ? Math.max(scrollEase, 0.14) : scrollEase;
     this.scroll = { current: 0, target: 0 };
     this.pointer = null;
     this.suppressClick = false;
     this.suppressClickUntil = 0;
-    this.gestureLockThreshold = 8;
-    this.gestureLockRatio = 1.1;
-    this.autoSpeed = this.isMobileLayout ? 0.014 : 0.022;
+    this.gestureLockThreshold = this.isMobileLayout ? 4 : 8;
+    this.gestureLockRatio = this.isMobileLayout ? 0.68 : 1.1;
+    this.autoSpeed = this.isMobileLayout ? 0.018 : 0.022;
     this.autoResumeDelay = this.isMobileLayout ? 4400 : 3000;
     this.lastInteraction = performance.now();
     this.lastFrameTime = performance.now();
     this.lastPaintTime = 0;
-    this.frameInterval = this.isMobileLayout ? 1000 / 40 : 0;
+    this.frameInterval = 0;
     this.isVisible = typeof IntersectionObserver === "undefined";
     this.raf = null;
     this.motionQuery = window.matchMedia?.("(prefers-reduced-motion: reduce)");
@@ -2599,7 +2599,7 @@ class CertificateGallery {
     this.cardWidth = Math.min(420, Math.max(180, Math.min(this.width * 0.36, maxCardHeight / Math.SQRT2)));
     this.cardHeight = Math.min(maxCardHeight, this.cardWidth * Math.SQRT2);
     this.cardTop = Math.max(7, (this.height - this.cardHeight) / 2);
-    this.spacing = this.cardWidth + Math.max(28, this.cardWidth * 0.16);
+    this.spacing = this.cardWidth + Math.max(this.isMobileLayout ? 18 : 28, this.cardWidth * (this.isMobileLayout ? 0.12 : 0.16));
     this.totalWidth = this.spacing * this.cards.length;
     this.cards.forEach(({ element }) => {
       element.style.width = `${this.cardWidth}px`;
@@ -2683,7 +2683,8 @@ class CertificateGallery {
 
     if (event.cancelable) event.preventDefault();
     this.markInteraction();
-    this.scroll.target = this.pointer.startTarget + distance * this.scrollSpeed * 0.7;
+    const dragSpeed = this.isMobileLayout ? 1.18 : 0.7;
+    this.scroll.target = this.pointer.startTarget + distance * this.scrollSpeed * dragSpeed;
   }
 
   onPointerUp(event) {
