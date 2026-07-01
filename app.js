@@ -2055,23 +2055,30 @@ class QuickBrowseDome {
     this.sphere.style.transform = `scale(${this.viewScale}) translateZ(${-this.radius}px) rotateX(${this.rotation.x}deg) rotateY(${this.rotation.y}deg)`;
   }
 
-	  onTouchStart(event) {
-	    if (!this.isMobileLayout || event.touches.length !== 1) return;
-	    const touch = event.touches[0];
-	    const sourceTile = event.target.closest(".quick-dome-tile");
-	    this.pointer = null;
-	    this.touchMomentum = 0;
-	    const now = performance.now();
-	    this.touch = {
-	      startX: touch.clientX,
-	      startY: touch.clientY,
-	      lastX: touch.clientX,
-	      lastTime: now,
-	      startRotation: { ...this.targetRotation },
-	      velocity: 0,
-	      gesture: "pending",
-	      moved: false,
-	      projectId: sourceTile?.dataset.projectId || null,
+  releaseTouchMomentum(velocity) {
+    const speed = Math.abs(velocity);
+    if (speed < 0.004) return 0;
+    const boost = 0.88 + Math.min(speed / 0.12, 1) * 0.38;
+    return Math.sign(velocity) * Math.min(0.18, speed * boost);
+  }
+
+  onTouchStart(event) {
+    if (!this.isMobileLayout || event.touches.length !== 1) return;
+    const touch = event.touches[0];
+    const sourceTile = event.target.closest(".quick-dome-tile");
+    this.pointer = null;
+    this.touchMomentum = 0;
+    const now = performance.now();
+    this.touch = {
+      startX: touch.clientX,
+      startY: touch.clientY,
+      lastX: touch.clientX,
+      lastTime: now,
+      startRotation: { ...this.targetRotation },
+      velocity: 0,
+      gesture: "pending",
+      moved: false,
+      projectId: sourceTile?.dataset.projectId || null,
       sourceTile
     };
     this.root.classList.remove("is-horizontal-dragging", "is-vertical-scrolling");
@@ -2100,32 +2107,32 @@ class QuickBrowseDome {
 
     if (this.touch.gesture !== "drag") return;
 
-	    if (event.cancelable) event.preventDefault();
-	    const now = performance.now();
-	    const deltaTime = Math.max(16, now - this.touch.lastTime);
-	    const stepVelocity = ((touch.clientX - this.touch.lastX) * this.touchRotationSpeed) / deltaTime;
-	    this.touch.velocity = this.touch.velocity * 0.78 + stepVelocity * 0.22;
-	    this.touch.lastX = touch.clientX;
-	    this.touch.lastTime = now;
-	    this.targetRotation.y = this.touch.startRotation.y + dx * this.touchRotationSpeed;
-	    this.rotation.x = 0;
-	    this.rotation.y += (this.targetRotation.y - this.rotation.y) * 0.46;
-	    this.applyTransform();
-	    this.markInteraction();
-	  }
+    if (event.cancelable) event.preventDefault();
+    const now = performance.now();
+    const deltaTime = Math.max(16, now - this.touch.lastTime);
+    const stepVelocity = ((touch.clientX - this.touch.lastX) * this.touchRotationSpeed) / deltaTime;
+    this.touch.velocity = this.touch.velocity * 0.78 + stepVelocity * 0.22;
+    this.touch.lastX = touch.clientX;
+    this.touch.lastTime = now;
+    this.targetRotation.y = this.touch.startRotation.y + dx * this.touchRotationSpeed;
+    this.rotation.x = 0;
+    this.rotation.y += (this.targetRotation.y - this.rotation.y) * 0.46;
+    this.applyTransform();
+    this.markInteraction();
+  }
 
-	  onTouchEnd(event) {
-	    if (!this.touch || event.touches.length) return;
-	    const { moved, projectId, sourceTile, gesture, velocity } = this.touch;
-	    this.resetTouch();
-	    this.suppressClick = true;
-	    if (moved && gesture === "drag") {
-	      this.touchMomentum = Math.max(-0.075, Math.min(0.075, velocity));
-	      this.start();
-	    }
+  onTouchEnd(event) {
+    if (!this.touch || event.touches.length) return;
+    const { moved, projectId, sourceTile, gesture, velocity } = this.touch;
+    this.resetTouch();
+    this.suppressClick = true;
+    if (moved && gesture === "drag") {
+      this.touchMomentum = this.releaseTouchMomentum(velocity);
+      this.start();
+    }
 
-	    if (!moved && gesture !== "scroll" && projectId) {
-	      this.markInteraction();
+    if (!moved && gesture !== "scroll" && projectId) {
+      this.markInteraction();
       openProject(projectId, sourceTile);
     }
 
@@ -2377,7 +2384,8 @@ class QuickBrowseDome {
     this.lastFrameTime = timestamp;
     if (!this.pointer && !this.touch && Math.abs(this.touchMomentum) > 0.0005) {
       this.targetRotation.y += this.touchMomentum * delta;
-      this.touchMomentum *= Math.exp(-delta * 0.0048);
+      const drag = 0.0042 + Math.min(Math.abs(this.touchMomentum) * 0.018, 0.004);
+      this.touchMomentum *= Math.exp(-delta * drag);
       if (Math.abs(this.touchMomentum) < 0.0005) this.touchMomentum = 0;
     }
     if (!this.pointer && !this.touch && !this.touchMomentum && !this.holdSnapshot && timestamp - this.lastInteraction > 1800) {
@@ -2691,6 +2699,13 @@ class CertificateGallery {
     openImageViewer(item.image, galleryItems[index].caption, galleryItems, index);
   }
 
+  releaseTouchMomentum(velocity) {
+    const speed = Math.abs(velocity);
+    if (speed < 0.025) return 0;
+    const boost = 0.82 + Math.min(speed / 1.2, 1) * 0.42;
+    return Math.sign(velocity) * Math.min(2.4, speed * boost);
+  }
+
   setLanguage() {
     this.cards.forEach(({ item, element }) => {
       const image = element.querySelector("img");
@@ -2731,34 +2746,34 @@ class CertificateGallery {
     if (!document.hidden) this.start();
   }
 
-	  onMotionPreferenceChange(event) {
-	    this.prefersReducedMotion = event.matches;
-	    this.touchMomentum = 0;
-	    if (this.prefersReducedMotion) {
-	      if (this.raf) window.cancelAnimationFrame(this.raf);
-	      this.raf = null;
+  onMotionPreferenceChange(event) {
+    this.prefersReducedMotion = event.matches;
+    this.touchMomentum = 0;
+    if (this.prefersReducedMotion) {
+      if (this.raf) window.cancelAnimationFrame(this.raf);
+      this.raf = null;
       this.render(performance.now(), false);
       return;
     }
     this.start();
   }
 
-	  onTouchStart(event) {
-	    if (!this.isMobileLayout || event.touches.length !== 1) return;
-	    const touch = event.touches[0];
-	    this.pointer = null;
-	    this.touchMomentum = 0;
-	    const now = performance.now();
-	    this.touch = {
-	      startX: touch.clientX,
-	      startY: touch.clientY,
-	      lastX: touch.clientX,
-	      lastTime: now,
-	      startTarget: this.scroll.target,
-	      velocity: 0,
-	      gesture: "pending",
-	      moved: false,
-	      cardIndex: Number(event.target.closest(".certificate-gallery-card")?.dataset.certificateIndex)
+  onTouchStart(event) {
+    if (!this.isMobileLayout || event.touches.length !== 1) return;
+    const touch = event.touches[0];
+    this.pointer = null;
+    this.touchMomentum = 0;
+    const now = performance.now();
+    this.touch = {
+      startX: touch.clientX,
+      startY: touch.clientY,
+      lastX: touch.clientX,
+      lastTime: now,
+      startTarget: this.scroll.target,
+      velocity: 0,
+      gesture: "pending",
+      moved: false,
+      cardIndex: Number(event.target.closest(".certificate-gallery-card")?.dataset.certificateIndex)
     };
     this.markInteraction();
   }
@@ -2785,31 +2800,31 @@ class CertificateGallery {
 
     if (this.touch.gesture !== "drag") return;
 
-	    if (event.cancelable) event.preventDefault();
-	    this.markInteraction();
-	    const now = performance.now();
-	    const deltaTime = Math.max(16, now - this.touch.lastTime);
-	    const touchDragSpeed = 0.95;
-	    const stepVelocity = ((this.touch.lastX - touch.clientX) * this.scrollSpeed * touchDragSpeed) / deltaTime;
-	    this.touch.velocity = this.touch.velocity * 0.76 + stepVelocity * 0.24;
-	    this.touch.lastX = touch.clientX;
-	    this.touch.lastTime = now;
-	    this.scroll.target = this.touch.startTarget + distance * this.scrollSpeed * touchDragSpeed;
-	    this.scroll.current += (this.scroll.target - this.scroll.current) * 0.5;
-	    this.render(performance.now(), false);
-	  }
+    if (event.cancelable) event.preventDefault();
+    this.markInteraction();
+    const now = performance.now();
+    const deltaTime = Math.max(16, now - this.touch.lastTime);
+    const touchDragSpeed = 0.82;
+    const stepVelocity = ((this.touch.lastX - touch.clientX) * this.scrollSpeed * touchDragSpeed) / deltaTime;
+    this.touch.velocity = this.touch.velocity * 0.76 + stepVelocity * 0.24;
+    this.touch.lastX = touch.clientX;
+    this.touch.lastTime = now;
+    this.scroll.target = this.touch.startTarget + distance * this.scrollSpeed * touchDragSpeed;
+    this.scroll.current += (this.scroll.target - this.scroll.current) * 0.5;
+    this.render(performance.now(), false);
+  }
 
-	  onTouchEnd(event) {
-	    if (!this.touch || event.touches.length) return;
-	    const { moved, cardIndex, gesture, velocity } = this.touch;
-	    this.touch = null;
-	    if (moved && gesture === "drag") {
-	      this.touchMomentum = Math.max(-1.6, Math.min(1.6, velocity));
-	      this.start();
-	    }
+  onTouchEnd(event) {
+    if (!this.touch || event.touches.length) return;
+    const { moved, cardIndex, gesture, velocity } = this.touch;
+    this.touch = null;
+    if (moved && gesture === "drag") {
+      this.touchMomentum = this.releaseTouchMomentum(velocity);
+      this.start();
+    }
 
-	    if (!moved && gesture !== "scroll" && Number.isInteger(cardIndex)) {
-	      this.suppressClick = true;
+    if (!moved && gesture !== "scroll" && Number.isInteger(cardIndex)) {
+      this.suppressClick = true;
       this.openCard(cardIndex);
     } else {
       this.suppressClick = moved;
@@ -2956,7 +2971,8 @@ class CertificateGallery {
     this.lastFrameTime = timestamp;
     if (!this.pointer && !this.touch && Math.abs(this.touchMomentum) > 0.01) {
       this.scroll.target += this.touchMomentum * deltaTime;
-      this.touchMomentum *= Math.exp(-deltaTime * 0.0052);
+      const drag = 0.0048 + Math.min(Math.abs(this.touchMomentum) * 0.00045, 0.0012);
+      this.touchMomentum *= Math.exp(-deltaTime * drag);
       if (Math.abs(this.touchMomentum) < 0.01) this.touchMomentum = 0;
     }
     if (shouldAutoScroll && !this.pointer && !this.touch && !this.touchMomentum && timestamp - this.lastInteraction > this.autoResumeDelay) {
