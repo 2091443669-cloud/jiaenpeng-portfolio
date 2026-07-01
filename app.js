@@ -2373,16 +2373,16 @@ class QuickBrowseDome {
       return;
     }
     this.lastPaintTime = timestamp;
-	    const delta = Math.min(64, Math.max(0, timestamp - this.lastFrameTime));
-	    this.lastFrameTime = timestamp;
-	    if (!this.pointer && !this.touch && Math.abs(this.touchMomentum) > 0.0005) {
-	      this.targetRotation.y += this.touchMomentum * delta;
-	      this.touchMomentum *= Math.exp(-delta * 0.0048);
-	      if (Math.abs(this.touchMomentum) < 0.0005) this.touchMomentum = 0;
-	    }
-	    if (!this.pointer && !this.touch && !this.touchMomentum && !this.holdSnapshot && timestamp - this.lastInteraction > 1800) {
-	      this.targetRotation.y += delta * 0.0032;
-	    }
+    const delta = Math.min(64, Math.max(0, timestamp - this.lastFrameTime));
+    this.lastFrameTime = timestamp;
+    if (!this.pointer && !this.touch && Math.abs(this.touchMomentum) > 0.0005) {
+      this.targetRotation.y += this.touchMomentum * delta;
+      this.touchMomentum *= Math.exp(-delta * 0.0048);
+      if (Math.abs(this.touchMomentum) < 0.0005) this.touchMomentum = 0;
+    }
+    if (!this.pointer && !this.touch && !this.touchMomentum && !this.holdSnapshot && timestamp - this.lastInteraction > 1800) {
+      this.targetRotation.y += delta * 0.0032;
+    }
 
     const distance = this.targetRotation.y - this.rotation.y;
     if (Math.abs(distance) > 0.001) {
@@ -2951,17 +2951,17 @@ class CertificateGallery {
     this.raf = window.requestAnimationFrame((timestamp) => this.frame(timestamp));
   }
 
-	  render(timestamp, shouldAutoScroll) {
-	    const deltaTime = Math.min(64, Math.max(0, timestamp - this.lastFrameTime));
-	    this.lastFrameTime = timestamp;
-	    if (!this.pointer && !this.touch && Math.abs(this.touchMomentum) > 0.01) {
-	      this.scroll.target += this.touchMomentum * deltaTime;
-	      this.touchMomentum *= Math.exp(-deltaTime * 0.0052);
-	      if (Math.abs(this.touchMomentum) < 0.01) this.touchMomentum = 0;
-	    }
-	    if (shouldAutoScroll && !this.pointer && !this.touch && !this.touchMomentum && timestamp - this.lastInteraction > this.autoResumeDelay) {
-	      this.scroll.target += deltaTime * this.autoSpeed;
-	    }
+  render(timestamp, shouldAutoScroll) {
+    const deltaTime = Math.min(64, Math.max(0, timestamp - this.lastFrameTime));
+    this.lastFrameTime = timestamp;
+    if (!this.pointer && !this.touch && Math.abs(this.touchMomentum) > 0.01) {
+      this.scroll.target += this.touchMomentum * deltaTime;
+      this.touchMomentum *= Math.exp(-deltaTime * 0.0052);
+      if (Math.abs(this.touchMomentum) < 0.01) this.touchMomentum = 0;
+    }
+    if (shouldAutoScroll && !this.pointer && !this.touch && !this.touchMomentum && timestamp - this.lastInteraction > this.autoResumeDelay) {
+      this.scroll.target += deltaTime * this.autoSpeed;
+    }
     this.scroll.current += (this.scroll.target - this.scroll.current) * this.scrollEase;
     const halfViewport = this.width / 2 + this.cardWidth * 0.45;
 
