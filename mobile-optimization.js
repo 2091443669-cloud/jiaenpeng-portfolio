@@ -78,10 +78,8 @@
   function syncLocks() {
     const open = isLayerOpen(modal) || isLayerOpen(imageViewer);
     if (open) {
-      lockPage();
       holdQuickBrowse(true);
     } else {
-      unlockPage();
       holdQuickBrowse(false);
     }
   }

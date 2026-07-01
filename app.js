@@ -82,6 +82,13 @@ const copy = {
     educationCourses:
       "主修课程：版式设计、品牌设计、包装设计、字体设计、信息可视化设计、海报设计、摄影基础、IP 形象设计等。",
     resumeExperienceTitle: "实践经历",
+    experienceHainanPeriod: "2025.09 - 2026.07",
+    experienceHainanCompany: "海南师范大学 / 平面设计师",
+    experienceHainanPointOne: "设计海师本科生专属 LOGO，制定配套视觉规范。",
+    experienceHainanPointTwo: "完成党委办公室党建文化墙面、展示物料视觉布置设计。",
+    experienceHainanPointThree: "独立设计全校年度校历，输出可直接印刷成品文件。",
+    experienceHainanPointFour: "承接校企合作项目，完成整套师酒品牌包装视觉系统设计。",
+    experienceHainanPointFive: "使用 AI / PS / ID 完成全流程设计，对接校方与合作方定稿落地。",
     experiencePeriod: "2025.07 - 09",
     experienceCompany: "石家庄市艾帆服饰有限公司 / 美工设计师",
     experiencePointOne: "绘制服饰产品效果图，展现产品版型与设计亮点，输出商用视觉素材。",
@@ -231,6 +238,13 @@ const copy = {
     educationCourses:
       "Core courses: layout design, brand design, packaging design, typography, information visualization, poster design, photography basics, and IP character design.",
     resumeExperienceTitle: "Experience",
+    experienceHainanPeriod: "2025.09 - 2026.07",
+    experienceHainanCompany: "Hainan Normal University / Graphic Designer",
+    experienceHainanPointOne: "Designed an exclusive undergraduate LOGO for Hainan Normal University and built the supporting visual guidelines.",
+    experienceHainanPointTwo: "Created party-building culture wall visuals and exhibition material layouts for the Party Committee Office.",
+    experienceHainanPointThree: "Independently designed the university annual calendar and delivered print-ready production files.",
+    experienceHainanPointFour: "Took on a university-enterprise collaboration project and completed the Shijiu brand packaging visual system.",
+    experienceHainanPointFive: "Used AI / PS / ID to complete the full design workflow and coordinated final delivery with the university and partners.",
     experiencePeriod: "2025.07 - 09",
     experienceCompany: "Shijiazhuang Aifan Apparel Co., Ltd. / Graphic Designer",
     experiencePointOne:
@@ -1192,6 +1206,7 @@ const hiddenFromSelected = new Set([
 const selectedGrid = document.querySelector("#selected-grid");
 const archiveGrid = document.querySelector("#archive-grid");
 const modal = document.querySelector("#project-modal");
+const modalBackdrop = document.querySelector(".modal-backdrop");
 const modalPanel = document.querySelector(".modal-panel");
 const modalMedia = document.querySelector(".modal-media");
 const modalImage = document.querySelector("#modal-image");
@@ -1206,6 +1221,8 @@ const modalGallery = document.querySelector("#modal-gallery");
 const modalOriginal = document.querySelector("#modal-original");
 const modalImageDots = document.querySelector("#modal-image-dots");
 const imageViewer = document.querySelector("#image-viewer");
+const imageViewerBackdrop = document.querySelector(".image-viewer-backdrop");
+const imageViewerPanel = document.querySelector(".image-viewer-panel");
 const viewerStage = document.querySelector("#image-viewer-stage");
 const viewerImage = document.querySelector("#viewer-image");
 const viewerCaption = document.querySelector("#viewer-caption");
@@ -1236,6 +1253,16 @@ let lastProjectTrigger = null;
 let lastViewerTrigger = null;
 let modalSwipe = null;
 let suppressModalImageClick = false;
+let modalLaunchTimer = 0;
+let modalMotionAnimations = [];
+let modalIsClosing = false;
+let lastProjectSourceRect = null;
+let modalImageTransitionTimer = 0;
+let viewerMotionAnimations = [];
+let viewerMotionTimer = 0;
+let viewerIsClosing = false;
+let lastViewerSourceRect = null;
+let viewerImageSwitchTimer = 0;
 const imagePreloadCache = new Map();
 
 function mountLiquidEther() {
@@ -1789,10 +1816,11 @@ class QuickBrowseDome {
     this.columnOffsets = [0];
     this.rotation = { x: 0, y: 0 };
     this.targetRotation = { y: 0 };
-    this.rotationEase = 0.06;
-    this.touchRotationEase = this.isMobileLayout ? 0.3 : 0.2;
+    this.rotationEase = this.isMobileLayout ? 0.075 : 0.06;
+    this.touchRotationEase = this.isMobileLayout ? 0.38 : 0.2;
+    this.touchLiveFollow = this.isMobileLayout ? 0.042 : 0.032;
     this.pointerRotationSpeed = 0.07;
-    this.touchRotationSpeed = this.isMobileLayout ? 0.15 : 0.13;
+    this.touchRotationSpeed = this.isMobileLayout ? 0.16 : 0.13;
     this.gestureLockThreshold = this.isMobileLayout ? 4 : 7;
     this.gestureLockRatio = this.isMobileLayout ? 0.72 : 1.12;
     this.pointer = null;
@@ -1901,6 +1929,7 @@ class QuickBrowseDome {
     this.onTouchStart = this.onTouchStart.bind(this);
     this.onTouchMove = this.onTouchMove.bind(this);
     this.onTouchEnd = this.onTouchEnd.bind(this);
+    this.onWheelPageScroll = this.onWheelPageScroll.bind(this);
     this.onSelectStart = this.onSelectStart.bind(this);
     this.onDragStart = this.onDragStart.bind(this);
     this.onCrosshairEnter = this.onCrosshairEnter.bind(this);
@@ -1920,6 +1949,7 @@ class QuickBrowseDome {
     this.root.addEventListener("touchmove", this.onTouchMove, { passive: false });
     this.root.addEventListener("touchend", this.onTouchEnd, { passive: false });
     this.root.addEventListener("touchcancel", this.onTouchEnd, { passive: false });
+    this.root.addEventListener("wheel", this.onWheelPageScroll, { passive: this.isMobileLayout ? false : true });
     this.root.addEventListener("selectstart", this.onSelectStart);
     this.root.addEventListener("dragstart", this.onDragStart);
     this.root.addEventListener("keydown", this.onKeyDown);
@@ -2061,8 +2091,8 @@ class QuickBrowseDome {
 
   releaseTouchMomentum(velocity) {
     const speed = Math.abs(velocity);
-    if (speed < 0.004) return 0;
-    return Math.sign(velocity) * Math.min(0.18, speed);
+    if (speed < 0.0025) return 0;
+    return Math.sign(velocity) * Math.min(this.isMobileLayout ? 0.36 : 0.22, speed * 1.26);
   }
 
   onTouchStart(event) {
@@ -2073,10 +2103,12 @@ class QuickBrowseDome {
     this.touchMomentum = 0;
     this.touchReleaseFollow = 0;
     const now = performance.now();
+    this.lastFrameTime = now;
     this.touch = {
       startX: touch.clientX,
       startY: touch.clientY,
       lastX: touch.clientX,
+      lastY: touch.clientY,
       lastTime: now,
       startRotation: { ...this.targetRotation },
       velocity: 0,
@@ -2088,6 +2120,7 @@ class QuickBrowseDome {
     };
     this.root.classList.remove("is-horizontal-dragging", "is-vertical-scrolling");
     this.markInteraction();
+    this.start();
   }
 
   onTouchMove(event) {
@@ -2104,10 +2137,22 @@ class QuickBrowseDome {
       if (absY > absX * 1.35) {
         this.touch.gesture = "scroll";
         this.root.classList.add("is-vertical-scrolling");
-        return;
       }
-      this.touch.gesture = "drag";
-      this.root.classList.add("is-horizontal-dragging");
+      if (this.touch.gesture === "pending") {
+        this.touch.gesture = "drag";
+        this.root.classList.add("is-horizontal-dragging");
+      }
+    }
+
+    if (this.touch.gesture === "scroll") {
+      if (event.cancelable) event.preventDefault();
+      const scrollDelta = this.touch.lastY - touch.clientY;
+      if (scrollDelta) window.scrollBy({ top: scrollDelta * 1.08, left: 0, behavior: "auto" });
+      this.touch.lastX = touch.clientX;
+      this.touch.lastY = touch.clientY;
+      this.touch.lastTime = performance.now();
+      this.markInteraction();
+      return;
     }
 
     if (this.touch.gesture !== "drag") return;
@@ -2116,13 +2161,15 @@ class QuickBrowseDome {
     const now = performance.now();
     const deltaTime = Math.max(16, now - this.touch.lastTime);
     const stepVelocity = ((touch.clientX - this.touch.lastX) * this.touchRotationSpeed) / deltaTime;
-    this.touch.velocity = this.touch.velocity * 0.78 + stepVelocity * 0.22;
-    this.touch.releaseVelocity = this.touch.velocity * 0.45 + stepVelocity * 0.55;
+    this.touch.velocity = this.touch.velocity * 0.72 + stepVelocity * 0.28;
+    this.touch.releaseVelocity = this.touch.velocity * 0.35 + stepVelocity * 0.65;
     this.touch.lastX = touch.clientX;
+    this.touch.lastY = touch.clientY;
     this.touch.lastTime = now;
     this.targetRotation.y = this.touch.startRotation.y + dx * this.touchRotationSpeed;
     this.rotation.x = 0;
-    this.rotation.y += (this.targetRotation.y - this.rotation.y) * 0.46;
+    const liveFollow = 1 - Math.exp(-deltaTime * this.touchLiveFollow);
+    this.rotation.y += (this.targetRotation.y - this.rotation.y) * liveFollow;
     this.applyTransform();
     this.markInteraction();
   }
@@ -2146,6 +2193,36 @@ class QuickBrowseDome {
     window.setTimeout(() => {
       this.suppressClick = false;
     }, moved ? 260 : 0);
+  }
+
+  onWheelPageScroll(event) {
+    if (event.ctrlKey || Math.abs(event.deltaX) > Math.abs(event.deltaY) * 1.35) return;
+
+    const modeScale = event.deltaMode === 1
+      ? 16
+      : event.deltaMode === 2
+        ? Math.max(window.innerHeight, 1)
+        : 1;
+    const rawDeltaY = event.deltaY * modeScale;
+    const scrollMultiplier = isMobileViewport() ? 2.35 : 2.45;
+    const deltaY = rawDeltaY * scrollMultiplier;
+    if (!deltaY) return;
+
+    if (!isMobileViewport()) {
+      const beforeScrollY = window.scrollY || window.pageYOffset || 0;
+      requestAnimationFrame(() => {
+        const afterScrollY = window.scrollY || window.pageYOffset || 0;
+        if (Math.abs(afterScrollY - beforeScrollY) < 1) {
+          window.scrollBy({ top: deltaY, left: 0, behavior: "auto" });
+        }
+      });
+      this.markInteraction();
+      return;
+    }
+
+    if (event.cancelable) event.preventDefault();
+    window.scrollBy({ top: deltaY, left: 0, behavior: "auto" });
+    this.markInteraction();
   }
 
   onPointerDown(event) {
@@ -2319,12 +2396,12 @@ class QuickBrowseDome {
     this.root.classList.remove("is-horizontal-dragging", "is-vertical-scrolling");
   }
 
-	  holdPosition() {
-	    if (this.holdSnapshot) return;
+  holdPosition() {
+    if (this.holdSnapshot) return;
 
-	    this.holdSnapshot = {
-	      rotationY: this.rotation.y
-	    };
+    this.holdSnapshot = {
+      rotationY: this.rotation.y
+    };
     if (this.raf) {
       window.cancelAnimationFrame(this.raf);
       this.raf = null;
@@ -2333,8 +2410,8 @@ class QuickBrowseDome {
     this.touchMomentum = 0;
     this.touchReleaseFollow = 0;
     this.resetPointer();
-	    this.resetTouch();
-	    this.markInteraction();
+    this.resetTouch();
+    this.markInteraction();
     this.applyTransform();
   }
 
@@ -2390,14 +2467,16 @@ class QuickBrowseDome {
     this.lastPaintTime = timestamp;
     const delta = Math.min(64, Math.max(0, timestamp - this.lastFrameTime));
     this.lastFrameTime = timestamp;
-    if (!this.pointer && !this.touch && Math.abs(this.touchMomentum) > 0.0005) {
+    if (!this.pointer && !this.touch && Math.abs(this.touchMomentum) > 0.00035) {
       this.targetRotation.y += this.touchMomentum * delta;
-      const drag = 0.0042 + Math.min(Math.abs(this.touchMomentum) * 0.018, 0.004);
+      const drag = this.isMobileLayout
+        ? 0.0018 + Math.min(Math.abs(this.touchMomentum) * 0.006, 0.0018)
+        : 0.0042 + Math.min(Math.abs(this.touchMomentum) * 0.018, 0.004);
       this.touchMomentum *= Math.exp(-delta * drag);
-      if (Math.abs(this.touchMomentum) < 0.0005) this.touchMomentum = 0;
+      if (Math.abs(this.touchMomentum) < 0.00035) this.touchMomentum = 0;
     }
     if (!this.pointer && !this.touch && this.touchReleaseFollow > 0) {
-      this.touchReleaseFollow *= Math.exp(-delta * 0.009);
+      this.touchReleaseFollow *= Math.exp(-delta * (this.isMobileLayout ? 0.0048 : 0.009));
       if (this.touchReleaseFollow < 0.001) this.touchReleaseFollow = 0;
     }
     if (!this.pointer && !this.touch && !this.touchMomentum && !this.touchReleaseFollow && !this.holdSnapshot && timestamp - this.lastInteraction > 1800) {
@@ -2712,7 +2791,7 @@ class CertificateGallery {
       src: entry.image,
       caption: `${entry.year} · ${t(entry.titleKey)} · ${t(entry.prizeKey)}`
     }));
-    openImageViewer(item.image, galleryItems[index].caption, galleryItems, index);
+    openImageViewer(item.image, galleryItems[index].caption, galleryItems, index, this.cards[index]?.element);
   }
 
   releaseTouchMomentum(velocity) {
@@ -3225,6 +3304,7 @@ function renderArchive() {
 
   const pageGrid = pageNode.querySelector(".archive-page-grid");
   groupProjects.forEach((project, index) => {
+    const coverSrc = previewPath(project, project.coverImage || project.images[0]);
     const card = document.createElement("button");
     card.className = "work-card archive-work-card";
     card.type = "button";
@@ -3233,7 +3313,7 @@ function renderArchive() {
     card.style.setProperty("--archive-enter-delay", `${Math.min(index * 70, 420)}ms`);
     card.innerHTML = `
       <div class="card-media">
-        <img src="${previewPath(project, project.coverImage || project.images[0])}" alt="${projectTitle(project)}" loading="lazy" />
+        <img src="${coverSrc}" alt="${projectTitle(project)}" loading="lazy" />
       </div>
       <div class="card-body">
         <span class="card-index">${String(index + 1).padStart(2, "0")}</span>
@@ -3302,7 +3382,19 @@ function unlockPageScroll() {
   }
   document.body.style.overflow = "";
   document.documentElement.classList.remove("is-scroll-locked");
-  if (shouldRestorePosition) window.scrollTo(0, lockedScrollY);
+  if (shouldRestorePosition) {
+    const html = document.documentElement;
+    const body = document.body;
+    const previousScrollBehavior = html.style.scrollBehavior;
+    const previousBodyScrollBehavior = body.style.scrollBehavior;
+    html.style.scrollBehavior = "auto";
+    body.style.scrollBehavior = "auto";
+    window.scrollTo(0, lockedScrollY);
+    window.setTimeout(() => {
+      html.style.scrollBehavior = previousScrollBehavior;
+      body.style.scrollBehavior = previousBodyScrollBehavior;
+    }, 0);
+  }
   scrollLockMode = null;
 }
 
@@ -3325,9 +3417,138 @@ function trapFocus(event, container) {
   }
 }
 
+function clearModalLaunch() {
+  if (modalLaunchTimer) {
+    window.clearTimeout(modalLaunchTimer);
+    modalLaunchTimer = 0;
+  }
+  modalMotionAnimations.forEach((animation) => animation.cancel());
+  modalMotionAnimations = [];
+  modal.classList.remove(
+    "is-launching",
+    "is-standard-opening",
+    "is-preparing-open",
+    "is-opening-ghost",
+    "is-closing",
+    "is-closing-ghost"
+  );
+  modalPanel.style.willChange = "";
+  if (modalBackdrop) modalBackdrop.style.willChange = "";
+}
+
+function snapshotRect(rect) {
+  if (!rect) return null;
+  return {
+    left: rect.left,
+    top: rect.top,
+    width: rect.width,
+    height: rect.height
+  };
+}
+
+function modalMotionFromRect(sourceRect) {
+  const panelRect = modalPanel.getBoundingClientRect();
+  if (!sourceRect || !panelRect.width || !panelRect.height || !sourceRect.width || !sourceRect.height) {
+    modal.style.setProperty("--modal-origin-x", "50%");
+    modal.style.setProperty("--modal-origin-y", "50%");
+    return null;
+  }
+
+  const sourceCenterX = sourceRect.left + sourceRect.width / 2;
+  const sourceCenterY = sourceRect.top + sourceRect.height / 2;
+  const panelCenterX = panelRect.left + panelRect.width / 2;
+  const panelCenterY = panelRect.top + panelRect.height / 2;
+  const x = sourceCenterX - panelCenterX;
+  const y = sourceCenterY - panelCenterY;
+  const scale = clamp(
+    Math.min(sourceRect.width / panelRect.width, sourceRect.height / panelRect.height) * 0.94,
+    isMobileViewport() ? 0.2 : 0.14,
+    isMobileViewport() ? 0.56 : 0.46
+  );
+  const midScale = scale + (1 - scale) * 0.62;
+
+  modal.style.setProperty("--modal-origin-x", `${sourceCenterX - panelRect.left}px`);
+  modal.style.setProperty("--modal-origin-y", `${sourceCenterY - panelRect.top}px`);
+  modal.style.setProperty("--modal-launch-x", `${x}px`);
+  modal.style.setProperty("--modal-launch-y", `${y}px`);
+  modal.style.setProperty("--modal-launch-mid-x", `${x * 0.18}px`);
+  modal.style.setProperty("--modal-launch-mid-y", `${y * 0.18}px`);
+  modal.style.setProperty("--modal-launch-scale", scale.toFixed(4));
+  modal.style.setProperty("--modal-launch-mid-scale", midScale.toFixed(4));
+  modal.style.setProperty("--modal-launch-ghost-scale", clamp(scale * 1.16, 0.26, 0.62).toFixed(4));
+
+  return { x, y, scale, midX: x * 0.18, midY: y * 0.18, midScale };
+}
+
+function finishModalMotion() {
+  modalMotionAnimations.forEach((animation) => animation.cancel());
+  modalMotionAnimations = [];
+  modal.classList.remove("is-opening-ghost", "is-launching", "is-standard-opening");
+  modalPanel.style.willChange = "";
+  if (modalBackdrop) modalBackdrop.style.willChange = "";
+}
+
+function setModalLaunch(sourceRect, shouldAnimate = true) {
+  clearModalLaunch();
+
+  [
+    "--modal-launch-x",
+    "--modal-launch-y",
+    "--modal-launch-mid-x",
+    "--modal-launch-mid-y",
+    "--modal-launch-scale",
+    "--modal-launch-mid-scale",
+    "--modal-launch-ghost-scale"
+  ].forEach((property) => modal.style.removeProperty(property));
+
+  if (!shouldAnimate || prefersReducedMotion() || !modalPanel.animate) {
+    modal.style.setProperty("--modal-origin-x", "50%");
+    modal.style.setProperty("--modal-origin-y", "50%");
+    return;
+  }
+
+  const motion = modalMotionFromRect(sourceRect);
+  const duration = motion ? 620 : 420;
+  const easing = "cubic-bezier(0.22, 0.86, 0.2, 1)";
+
+  modalPanel.style.willChange = "transform, opacity";
+  if (modalBackdrop) modalBackdrop.style.willChange = "opacity";
+  if (motion) modal.classList.add("is-opening-ghost");
+
+  const panelAnimation = modalPanel.animate(
+    motion
+      ? [
+          { opacity: 0.08, transform: `translate3d(${motion.x}px, ${motion.y}px, 0) scale(${motion.scale})`, offset: 0 },
+          { opacity: 0.72, transform: `translate3d(${motion.midX}px, ${motion.midY}px, 0) scale(${motion.midScale})`, offset: 0.48 },
+          { opacity: 1, transform: "translate3d(0, 0, 0) scale(1.014)", offset: 0.82 },
+          { opacity: 1, transform: "translate3d(0, 0, 0) scale(1)", offset: 1 }
+        ]
+      : [
+          { opacity: 0, transform: "translate3d(0, 18px, 0) scale(0.965)" },
+          { opacity: 1, transform: "translate3d(0, 0, 0) scale(1.008)", offset: 0.82 },
+          { opacity: 1, transform: "translate3d(0, 0, 0) scale(1)" }
+        ],
+    { duration, easing, fill: "both" }
+  );
+  const backdropAnimation = modalBackdrop?.animate(
+    [
+      { opacity: 0 },
+      { opacity: 1 }
+    ],
+    { duration: Math.max(360, duration - 120), easing: "ease-out", fill: "both" }
+  );
+
+  modalMotionAnimations = [panelAnimation, backdropAnimation].filter(Boolean);
+  modalLaunchTimer = window.setTimeout(() => {
+    finishModalMotion();
+    modalLaunchTimer = 0;
+  }, duration + 48);
+}
+
 function openProject(projectId, sourceElement = null) {
   const project = allProjects().find((item) => item.id === projectId);
   if (!project) return;
+  modalIsClosing = false;
   const modalWasOpen = modal.classList.contains("is-open");
 
   if (!modalWasOpen && isMobileViewport()) {
@@ -3340,11 +3561,8 @@ function openProject(projectId, sourceElement = null) {
       ? document.activeElement
       : null;
 
-  const sourceRect = sourceElement?.getBoundingClientRect?.();
-  const originX = sourceRect ? sourceRect.left + sourceRect.width / 2 : window.innerWidth / 2;
-  const originY = sourceRect ? sourceRect.top + sourceRect.height / 2 : window.innerHeight / 2;
-  modal.style.setProperty("--modal-origin-x", `${originX}px`);
-  modal.style.setProperty("--modal-origin-y", `${originY}px`);
+  const sourceRect = !modalWasOpen ? snapshotRect(sourceElement?.getBoundingClientRect?.()) : null;
+  if (sourceRect?.width && sourceRect?.height) lastProjectSourceRect = sourceRect;
 
   activeProject = project;
   modalTitle.textContent = projectTitle(project);
@@ -3422,18 +3640,82 @@ function openProject(projectId, sourceElement = null) {
       modalGallery.appendChild(thumb);
     });
 
-    setModalImage(project, project.images[0]);
+    setModalImage(project, project.images[0], modalGallery.querySelector(".thumb-btn"), { animate: false });
   }
   modal.classList.add("is-open");
+  setModalLaunch(sourceRect, !modalWasOpen);
   modal.setAttribute("aria-hidden", "false");
   if (isMobileViewport()) modalPanel.scrollTop = 0;
+  requestAnimationFrame(() => refreshModalGalleryIndicator({ immediate: true }));
   setPageBackgroundInert(true);
   if (!modalWasOpen) lockPageScroll();
-  requestAnimationFrame(() => modal.querySelector(".modal-close")?.focus());
+  requestAnimationFrame(() => modal.querySelector(".modal-close")?.focus({ preventScroll: true }));
 }
 
-function setModalImage(project, image, activeThumb) {
+function ensureModalGalleryIndicator() {
+  let indicator = modalGallery.querySelector(".gallery-selection-indicator");
+  if (!indicator) {
+    indicator = document.createElement("span");
+    indicator.className = "gallery-selection-indicator";
+    indicator.setAttribute("aria-hidden", "true");
+    modalGallery.appendChild(indicator);
+  }
+  return indicator;
+}
+
+function refreshModalGalleryIndicator({ immediate = false } = {}) {
+  const activeThumb = modalGallery.querySelector(".thumb-btn.is-active");
+  if (!activeThumb || modalGallery.hidden) {
+    modalGallery.classList.remove("is-selection-ready");
+    return;
+  }
+
+  const indicator = ensureModalGalleryIndicator();
+  const width = activeThumb.offsetWidth;
+  const height = activeThumb.offsetHeight;
+  if (!width || !height) {
+    requestAnimationFrame(() => refreshModalGalleryIndicator({ immediate }));
+    return;
+  }
+
+  if (immediate) indicator.style.transition = "none";
+  indicator.style.width = `${width}px`;
+  indicator.style.height = `${height}px`;
+  indicator.style.transform = `translate3d(${activeThumb.offsetLeft}px, ${activeThumb.offsetTop}px, 0)`;
+  modalGallery.classList.add("is-selection-ready");
+
+  if (immediate) {
+    requestAnimationFrame(() => {
+      indicator.style.transition = "";
+    });
+  }
+}
+
+function animateModalImageChange() {
+  if (prefersReducedMotion()) return;
+
+  window.clearTimeout(modalImageTransitionTimer);
+  modalImage.style.transition = "none";
+  modalImage.style.transform = "scale(0.982)";
+  modalImage.style.opacity = "0.62";
+
+  requestAnimationFrame(() => {
+    modalImage.style.transition = "transform 430ms cubic-bezier(0.2, 0.86, 0.18, 1), opacity 360ms ease";
+    modalImage.style.transform = "";
+    modalImage.style.opacity = "";
+  });
+
+  modalImageTransitionTimer = window.setTimeout(() => {
+    modalImage.style.transition = "";
+    modalImageTransitionTimer = 0;
+  }, 470);
+}
+
+function setModalImage(project, image, activeThumb, { animate = true } = {}) {
   const source = previewPath(project, image);
+  const previousSource = modalImage.getAttribute("src");
+  const shouldAnimate = animate && previousSource && previousSource !== source && !modalSwipe;
+
   modalImage.decoding = "async";
   modalImage.src = source;
   modalImage.alt = projectTitle(project);
@@ -3444,6 +3726,9 @@ function setModalImage(project, image, activeThumb) {
     modalGallery.querySelectorAll(".thumb-btn").forEach((button) => button.classList.remove("is-active"));
     activeThumb.classList.add("is-active");
   }
+
+  refreshModalGalleryIndicator();
+  if (shouldAnimate) animateModalImageChange();
 
   updateModalImageDots(project);
   preloadModalNeighbors(project);
@@ -3496,12 +3781,12 @@ function updateModalImageDots(project = activeProject) {
   });
 }
 
-function setModalImageByIndex(index) {
+function setModalImageByIndex(index, options = {}) {
   if (!activeProject?.images?.length) return;
 
   const nextIndex = clamp(index, 0, activeProject.images.length - 1);
   const nextThumb = modalGallery.querySelectorAll(".thumb-btn")[nextIndex];
-  setModalImage(activeProject, activeProject.images[nextIndex], nextThumb);
+  setModalImage(activeProject, activeProject.images[nextIndex], nextThumb, options);
 }
 
 function preloadModalNeighbors(project = activeProject) {
@@ -3523,15 +3808,29 @@ function moveModalImage(direction) {
   setModalImageByIndex(nextIndex);
 }
 
-function closeProject() {
-  closeImageViewer({ restoreFocus: false });
-  quickBrowse?.restoreHeldPosition();
+function modalReturnRect() {
+  const triggerRect = lastProjectTrigger?.isConnected
+    ? snapshotRect(lastProjectTrigger.getBoundingClientRect())
+    : null;
+  return triggerRect?.width && triggerRect?.height ? triggerRect : lastProjectSourceRect;
+}
+
+function resetModalInteractionState() {
+  clearModalLaunch();
+  window.clearTimeout(modalImageTransitionTimer);
+  modalImageTransitionTimer = 0;
   modalSwipe = null;
   suppressModalImageClick = false;
   modalMedia.classList.remove("is-swiping", "is-swipe-intent");
   modalImage.style.transition = "";
   modalImage.style.transform = "";
   modalImage.style.opacity = "";
+}
+
+function finishProjectClose(trigger) {
+  clearModalLaunch();
+  modalIsClosing = false;
+  quickBrowse?.restoreHeldPosition();
   modal.classList.remove("is-open");
   modal.setAttribute("aria-hidden", "true");
   modalImage.removeAttribute("src");
@@ -3550,11 +3849,63 @@ function closeProject() {
   setPageBackgroundInert(false);
   unlockPageScroll();
 
-  const trigger = lastProjectTrigger;
   lastProjectTrigger = null;
+  lastProjectSourceRect = null;
   requestAnimationFrame(() => {
-    if (trigger?.isConnected) trigger.focus();
+    if (trigger?.isConnected) trigger.focus({ preventScroll: true });
   });
+}
+
+function closeProject() {
+  if (!modal.classList.contains("is-open") || modalIsClosing) return;
+
+  closeImageViewer({ restoreFocus: false, animate: false });
+  const trigger = lastProjectTrigger;
+  const returnRect = modalReturnRect();
+  modalIsClosing = true;
+  resetModalInteractionState();
+
+  if (prefersReducedMotion() || !modalPanel.animate) {
+    finishProjectClose(trigger);
+    return;
+  }
+
+  const motion = modalMotionFromRect(returnRect);
+  const duration = motion ? 500 : 360;
+  const easing = "cubic-bezier(0.34, 0.72, 0, 1)";
+
+  modal.classList.add("is-closing");
+  if (motion) modal.classList.add("is-closing-ghost");
+  modalPanel.style.willChange = "transform, opacity";
+  if (modalBackdrop) modalBackdrop.style.willChange = "opacity";
+
+  const panelAnimation = modalPanel.animate(
+    motion
+      ? [
+          { opacity: 1, transform: "translate3d(0, 0, 0) scale(1)", offset: 0 },
+          { opacity: 0.96, transform: "translate3d(0, 0, 0) scale(0.992)", offset: 0.16 },
+          { opacity: 0.58, transform: `translate3d(${motion.midX}px, ${motion.midY}px, 0) scale(${motion.midScale})`, offset: 0.58 },
+          { opacity: 0, transform: `translate3d(${motion.x}px, ${motion.y}px, 0) scale(${motion.scale})`, offset: 1 }
+        ]
+      : [
+          { opacity: 1, transform: "translate3d(0, 0, 0) scale(1)" },
+          { opacity: 0, transform: "translate3d(0, 18px, 0) scale(0.965)" }
+        ],
+    { duration, easing, fill: "both" }
+  );
+  const backdropAnimation = modalBackdrop?.animate(
+    [
+      { opacity: 1 },
+      { opacity: 0 }
+    ],
+    { duration: Math.max(280, duration - 70), easing: "ease-out", fill: "both" }
+  );
+
+  modalMotionAnimations = [panelAnimation, backdropAnimation].filter(Boolean);
+  modalLaunchTimer = window.setTimeout(() => {
+    finishProjectClose(trigger);
+    modalLaunchTimer = 0;
+  }, duration + 48);
 }
 
 function clamp(value, min, max) {
@@ -3564,6 +3915,10 @@ function clamp(value, min, max) {
 function clearBrowserSelection() {
   const selection = window.getSelection?.();
   if (selection?.rangeCount) selection.removeAllRanges();
+}
+
+function activeModalThumb() {
+  return modalGallery.querySelector(".thumb-btn.is-active");
 }
 
 function preloadImage(src) {
@@ -3624,15 +3979,147 @@ function renderImageViewer() {
   preloadViewerNeighbors();
 }
 
+function clearViewerImageSwitch() {
+  window.clearTimeout(viewerImageSwitchTimer);
+  viewerImageSwitchTimer = 0;
+  viewerStage.querySelectorAll(".viewer-switch-clone").forEach((node) => node.remove());
+  viewerImage.style.transition = "";
+  viewerImage.style.opacity = "";
+  updateViewerTransform();
+}
+
+function playViewerImageSwitch(direction, updateImage) {
+  if (prefersReducedMotion() || viewerZoom > 1) {
+    updateImage();
+    return;
+  }
+
+  clearViewerImageSwitch();
+  const currentSrc = viewerImage.getAttribute("src");
+  const distance = Math.min(Math.max(viewerStage.clientWidth * 0.16, 86), 210);
+  const enterX = direction > 0 ? distance : -distance;
+  const exitX = direction > 0 ? -distance : distance;
+  const clone = document.createElement("img");
+  clone.className = "viewer-switch-clone";
+  clone.src = currentSrc;
+  clone.alt = "";
+  clone.decoding = "async";
+  viewerStage.appendChild(clone);
+
+  updateImage();
+  viewerImage.style.transition = "none";
+  viewerImage.style.opacity = "0";
+  viewerImage.style.transform = `translate3d(${enterX}px, 0, 0) scale(0.985)`;
+
+  requestAnimationFrame(() => {
+    clone.animate(
+      [
+        { opacity: 1, transform: "translate3d(0, 0, 0) scale(1)" },
+        { opacity: 0, transform: `translate3d(${exitX}px, 0, 0) scale(0.985)` }
+      ],
+      { duration: 260, easing: "cubic-bezier(0.2, 0.82, 0.18, 1)", fill: "forwards" }
+    );
+
+    viewerImage.style.transition = "transform 280ms cubic-bezier(0.2, 0.82, 0.18, 1), opacity 220ms ease";
+    viewerImage.style.opacity = "";
+    updateViewerTransform();
+  });
+
+  viewerImageSwitchTimer = window.setTimeout(() => {
+    clone.remove();
+    viewerImage.style.transition = "";
+    viewerImageSwitchTimer = 0;
+  }, 320);
+}
+
+function clearImageViewerMotion() {
+  if (viewerMotionTimer) {
+    window.clearTimeout(viewerMotionTimer);
+    viewerMotionTimer = 0;
+  }
+  viewerMotionAnimations.forEach((animation) => animation.cancel());
+  viewerMotionAnimations = [];
+  imageViewer.classList.remove("is-opening-motion", "is-closing");
+  if (imageViewerPanel) imageViewerPanel.style.willChange = "";
+  if (imageViewerBackdrop) imageViewerBackdrop.style.willChange = "";
+}
+
+function imageViewerMotionFromRect(sourceRect) {
+  const panelRect = imageViewerPanel?.getBoundingClientRect?.();
+  if (!sourceRect || !panelRect?.width || !panelRect?.height || !sourceRect.width || !sourceRect.height) return null;
+
+  const sourceCenterX = sourceRect.left + sourceRect.width / 2;
+  const sourceCenterY = sourceRect.top + sourceRect.height / 2;
+  const panelCenterX = panelRect.left + panelRect.width / 2;
+  const panelCenterY = panelRect.top + panelRect.height / 2;
+  const x = sourceCenterX - panelCenterX;
+  const y = sourceCenterY - panelCenterY;
+  const scale = clamp(
+    Math.min(sourceRect.width / panelRect.width, sourceRect.height / panelRect.height) * 0.96,
+    0.1,
+    isMobileViewport() ? 0.52 : 0.46
+  );
+  const midScale = scale + (1 - scale) * 0.64;
+
+  return { x, y, scale, midX: x * 0.2, midY: y * 0.2, midScale };
+}
+
+function finishImageViewerMotion() {
+  clearImageViewerMotion();
+}
+
+function playImageViewerOpen(sourceRect) {
+  clearImageViewerMotion();
+  if (prefersReducedMotion() || !imageViewerPanel?.animate) return;
+
+  const motion = imageViewerMotionFromRect(sourceRect);
+  const duration = motion ? 600 : 360;
+  const easing = "cubic-bezier(0.22, 0.86, 0.2, 1)";
+
+  imageViewer.classList.add("is-opening-motion");
+  imageViewerPanel.style.willChange = "transform, opacity";
+  if (imageViewerBackdrop) imageViewerBackdrop.style.willChange = "opacity";
+
+  const panelAnimation = imageViewerPanel.animate(
+    motion
+      ? [
+          { opacity: 0.1, transform: `translate3d(${motion.x}px, ${motion.y}px, 0) scale(${motion.scale})`, offset: 0 },
+          { opacity: 0.78, transform: `translate3d(${motion.midX}px, ${motion.midY}px, 0) scale(${motion.midScale})`, offset: 0.5 },
+          { opacity: 1, transform: "translate3d(0, 0, 0) scale(1.012)", offset: 0.82 },
+          { opacity: 1, transform: "translate3d(0, 0, 0) scale(1)", offset: 1 }
+        ]
+      : [
+          { opacity: 0, transform: "translate3d(0, 14px, 0) scale(0.982)" },
+          { opacity: 1, transform: "translate3d(0, 0, 0) scale(1)" }
+        ],
+    { duration, easing, fill: "both" }
+  );
+  const backdropAnimation = imageViewerBackdrop?.animate(
+    [
+      { opacity: 0 },
+      { opacity: 1 }
+    ],
+    { duration: Math.max(300, duration - 110), easing: "ease-out", fill: "both" }
+  );
+
+  viewerMotionAnimations = [panelAnimation, backdropAnimation].filter(Boolean);
+  viewerMotionTimer = window.setTimeout(finishImageViewerMotion, duration + 48);
+}
+
 function moveImageViewer(direction) {
   if (viewerItems.length < 2 || viewerSwitching) return;
 
   viewerSwitching = true;
-  viewerIndex = (viewerIndex + direction + viewerItems.length) % viewerItems.length;
-  renderImageViewer();
+  playViewerImageSwitch(direction, () => {
+    viewerIndex = (viewerIndex + direction + viewerItems.length) % viewerItems.length;
+    renderImageViewer();
+    if (modal.classList.contains("is-open") && activeProject && !activeProject.pdfFile) {
+      setModalImageByIndex(viewerIndex, { animate: false });
+    }
+  });
   window.setTimeout(() => {
     viewerSwitching = false;
-  }, 130);
+  }, 300);
 }
 
 function preloadViewerNeighbors(index = viewerIndex) {
@@ -3644,10 +4131,15 @@ function preloadViewerNeighbors(index = viewerIndex) {
   });
 }
 
-function openImageViewer(src, caption, items, startIndex) {
+function openImageViewer(src, caption, items, startIndex, sourceElement = null) {
   if (!src) return;
 
+  viewerIsClosing = false;
   lastViewerTrigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  const fallbackSource = modal.classList.contains("is-open") ? activeModalThumb() : lastViewerTrigger;
+  const sourceRect = snapshotRect((sourceElement || fallbackSource)?.getBoundingClientRect?.());
+  if (sourceRect?.width && sourceRect?.height) lastViewerSourceRect = sourceRect;
+
   if (modal.classList.contains("is-open")) modal.inert = true;
   else setPageBackgroundInert(true);
 
@@ -3659,12 +4151,20 @@ function openImageViewer(src, caption, items, startIndex) {
   imageViewer.classList.add("is-open");
   imageViewer.setAttribute("aria-hidden", "false");
   lockPageScroll();
-  requestAnimationFrame(() => imageViewer.querySelector(".image-viewer-close")?.focus());
+  playImageViewerOpen(sourceRect);
+  requestAnimationFrame(() => imageViewer.querySelector(".image-viewer-close")?.focus({ preventScroll: true }));
 }
 
-function closeImageViewer({ restoreFocus = true } = {}) {
-  if (!imageViewer.classList.contains("is-open")) return;
+function imageViewerReturnRect() {
+  const activeThumb = modal.classList.contains("is-open") ? activeModalThumb() : null;
+  const thumbRect = snapshotRect(activeThumb?.getBoundingClientRect?.());
+  return thumbRect?.width && thumbRect?.height ? thumbRect : lastViewerSourceRect;
+}
 
+function finishImageViewerClose(trigger, restoreFocus) {
+  clearImageViewerMotion();
+  clearViewerImageSwitch();
+  viewerIsClosing = false;
   imageViewer.classList.remove("is-open");
   imageViewer.setAttribute("aria-hidden", "true");
   viewerImage.removeAttribute("src");
@@ -3678,13 +4178,63 @@ function closeImageViewer({ restoreFocus = true } = {}) {
   else setPageBackgroundInert(false);
   unlockPageScroll();
 
-  const trigger = lastViewerTrigger;
   lastViewerTrigger = null;
+  lastViewerSourceRect = null;
   if (restoreFocus) {
     requestAnimationFrame(() => {
-      if (trigger?.isConnected) trigger.focus();
+      if (trigger?.isConnected) trigger.focus({ preventScroll: true });
     });
   }
+}
+
+function closeImageViewer({ restoreFocus = true, animate = true } = {}) {
+  if (!imageViewer.classList.contains("is-open") || viewerIsClosing) return;
+
+  const trigger = lastViewerTrigger;
+  const returnRect = imageViewerReturnRect();
+  viewerIsClosing = true;
+  clearViewerImageSwitch();
+
+  if (!animate || prefersReducedMotion() || !imageViewerPanel?.animate) {
+    finishImageViewerClose(trigger, restoreFocus);
+    return;
+  }
+
+  clearImageViewerMotion();
+  const motion = imageViewerMotionFromRect(returnRect);
+  const duration = motion ? 500 : 320;
+  const easing = "cubic-bezier(0.34, 0.72, 0, 1)";
+
+  imageViewer.classList.add("is-closing");
+  imageViewerPanel.style.willChange = "transform, opacity";
+  if (imageViewerBackdrop) imageViewerBackdrop.style.willChange = "opacity";
+
+  const panelAnimation = imageViewerPanel.animate(
+    motion
+      ? [
+          { opacity: 1, transform: "translate3d(0, 0, 0) scale(1)", offset: 0 },
+          { opacity: 0.96, transform: "translate3d(0, 0, 0) scale(0.992)", offset: 0.18 },
+          { opacity: 0.6, transform: `translate3d(${motion.midX}px, ${motion.midY}px, 0) scale(${motion.midScale})`, offset: 0.62 },
+          { opacity: 0, transform: `translate3d(${motion.x}px, ${motion.y}px, 0) scale(${motion.scale})`, offset: 1 }
+        ]
+      : [
+          { opacity: 1, transform: "translate3d(0, 0, 0) scale(1)" },
+          { opacity: 0, transform: "translate3d(0, 12px, 0) scale(0.982)" }
+        ],
+    { duration, easing, fill: "both" }
+  );
+  const backdropAnimation = imageViewerBackdrop?.animate(
+    [
+      { opacity: 1 },
+      { opacity: 0 }
+    ],
+    { duration: Math.max(260, duration - 80), easing: "ease-out", fill: "both" }
+  );
+
+  viewerMotionAnimations = [panelAnimation, backdropAnimation].filter(Boolean);
+  viewerMotionTimer = window.setTimeout(() => {
+    finishImageViewerClose(trigger, restoreFocus);
+  }, duration + 48);
 }
 
 function setCapability(ability) {
@@ -3785,7 +4335,7 @@ function openLinkedImage(link) {
   }));
   const index = Math.max(links.indexOf(link), 0);
 
-  openImageViewer(link.getAttribute("href"), imageLinkCaption(link), items, index);
+  openImageViewer(link.getAttribute("href"), imageLinkCaption(link), items, index, link);
 }
 
 document.addEventListener("click", (event) => {
@@ -3876,7 +4426,7 @@ modalOriginal.addEventListener("click", (event) => {
     0
   );
 
-  openImageViewer(currentSrc, modalTitle.textContent, items, index);
+  openImageViewer(currentSrc, modalTitle.textContent, items, index, activeModalThumb());
 });
 
 document.querySelectorAll(".timeline-card").forEach((card) => {
@@ -3941,6 +4491,7 @@ document.addEventListener("click", (event) => {
 
 window.addEventListener("resize", () => {
   syncMobileNavigation();
+  refreshModalGalleryIndicator({ immediate: true });
 }, { passive: true });
 
 modeButtons.forEach((button) => {

@@ -26,12 +26,12 @@
   .quick-browse {
     contain: layout paint;
     overscroll-behavior: contain;
-    touch-action: none;
+    touch-action: pan-y;
   }
 
   .quick-dome-main,
   .quick-dome-stage {
-    touch-action: none;
+    touch-action: pan-y;
   }
 
   .quick-browse.is-horizontal-drag {
