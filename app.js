@@ -1793,6 +1793,7 @@ class QuickBrowseDome {
     this.gestureLockThreshold = this.isMobileLayout ? 4 : 7;
     this.gestureLockRatio = this.isMobileLayout ? 0.72 : 1.12;
     this.pointer = null;
+    this.touch = null;
     this.holdSnapshot = null;
     this.suppressClick = false;
     this.lastInteraction = performance.now();
@@ -1892,6 +1893,9 @@ class QuickBrowseDome {
     this.onPointerMove = this.onPointerMove.bind(this);
     this.onPointerUp = this.onPointerUp.bind(this);
     this.onLostPointerCapture = this.onLostPointerCapture.bind(this);
+    this.onTouchStart = this.onTouchStart.bind(this);
+    this.onTouchMove = this.onTouchMove.bind(this);
+    this.onTouchEnd = this.onTouchEnd.bind(this);
     this.onSelectStart = this.onSelectStart.bind(this);
     this.onDragStart = this.onDragStart.bind(this);
     this.onCrosshairEnter = this.onCrosshairEnter.bind(this);
@@ -1907,6 +1911,10 @@ class QuickBrowseDome {
     this.root.addEventListener("pointerleave", this.onCrosshairLeave);
     this.root.addEventListener("pointercancel", this.onLostPointerCapture);
     this.root.addEventListener("lostpointercapture", this.onLostPointerCapture);
+    this.root.addEventListener("touchstart", this.onTouchStart, { passive: true });
+    this.root.addEventListener("touchmove", this.onTouchMove, { passive: false });
+    this.root.addEventListener("touchend", this.onTouchEnd, { passive: false });
+    this.root.addEventListener("touchcancel", this.onTouchEnd, { passive: false });
     this.root.addEventListener("selectstart", this.onSelectStart);
     this.root.addEventListener("dragstart", this.onDragStart);
     this.root.addEventListener("keydown", this.onKeyDown);
@@ -2046,7 +2054,72 @@ class QuickBrowseDome {
     this.sphere.style.transform = `scale(${this.viewScale}) translateZ(${-this.radius}px) rotateX(${this.rotation.x}deg) rotateY(${this.rotation.y}deg)`;
   }
 
+  onTouchStart(event) {
+    if (!this.isMobileLayout || event.touches.length !== 1) return;
+    const touch = event.touches[0];
+    const sourceTile = event.target.closest(".quick-dome-tile");
+    this.pointer = null;
+    this.touch = {
+      startX: touch.clientX,
+      startY: touch.clientY,
+      startRotation: { ...this.targetRotation },
+      gesture: "pending",
+      moved: false,
+      projectId: sourceTile?.dataset.projectId || null,
+      sourceTile
+    };
+    this.root.classList.remove("is-horizontal-dragging", "is-vertical-scrolling");
+    this.markInteraction();
+  }
+
+  onTouchMove(event) {
+    if (!this.touch || event.touches.length !== 1) return;
+    const touch = event.touches[0];
+    const dx = touch.clientX - this.touch.startX;
+    const dy = touch.clientY - this.touch.startY;
+    const absX = Math.abs(dx);
+    const absY = Math.abs(dy);
+
+    if (Math.hypot(dx, dy) > 5) this.touch.moved = true;
+
+    if (this.touch.gesture === "pending" && Math.max(absX, absY) > 2) {
+      if (absY > absX * 1.35) {
+        this.touch.gesture = "scroll";
+        this.root.classList.add("is-vertical-scrolling");
+        return;
+      }
+      this.touch.gesture = "drag";
+      this.root.classList.add("is-horizontal-dragging");
+    }
+
+    if (this.touch.gesture !== "drag") return;
+
+    if (event.cancelable) event.preventDefault();
+    this.targetRotation.y = this.touch.startRotation.y + dx * 0.36;
+    this.rotation.x = 0;
+    this.rotation.y = this.targetRotation.y;
+    this.applyTransform();
+    this.markInteraction();
+  }
+
+  onTouchEnd(event) {
+    if (!this.touch || event.touches.length) return;
+    const { moved, projectId, sourceTile, gesture } = this.touch;
+    this.resetTouch();
+    this.suppressClick = true;
+
+    if (!moved && gesture !== "scroll" && projectId) {
+      this.markInteraction();
+      openProject(projectId, sourceTile);
+    }
+
+    window.setTimeout(() => {
+      this.suppressClick = false;
+    }, moved ? 260 : 0);
+  }
+
   onPointerDown(event) {
+    if (event.pointerType === "touch" && this.isMobileLayout) return;
     if (event.button !== 0) return;
     // The surface is a drag control, not selectable content.  Stop the browser
     // from beginning a native text/image selection before pointer capture takes over.
@@ -2070,6 +2143,7 @@ class QuickBrowseDome {
   }
 
   onPointerMove(event) {
+    if (event.pointerType === "touch" && this.isMobileLayout) return;
     if (event.pointerType === "mouse") this.updateCrosshairTarget(event);
     if (!this.pointer || event.pointerId !== this.pointer.id) return;
     if (event.pointerType === "mouse" && (event.buttons & 1) === 0) {
@@ -2178,6 +2252,7 @@ class QuickBrowseDome {
   }
 
   onPointerUp(event) {
+    if (event.pointerType === "touch" && this.isMobileLayout) return;
     if (!this.pointer || event.pointerId !== this.pointer.id) return;
     const { moved, projectId, sourceTile } = this.pointer;
     this.resetPointer();
@@ -2209,6 +2284,11 @@ class QuickBrowseDome {
     this.root.classList.remove("is-horizontal-dragging", "is-vertical-scrolling");
   }
 
+  resetTouch() {
+    this.touch = null;
+    this.root.classList.remove("is-horizontal-dragging", "is-vertical-scrolling");
+  }
+
   holdPosition() {
     if (this.holdSnapshot) return;
 
@@ -2221,6 +2301,7 @@ class QuickBrowseDome {
     }
     this.targetRotation.y = this.rotation.y;
     this.resetPointer();
+    this.resetTouch();
     this.markInteraction();
     this.applyTransform();
   }
@@ -2491,6 +2572,7 @@ class CertificateGallery {
     this.scrollEase = this.isMobileLayout ? Math.max(scrollEase, 0.14) : scrollEase;
     this.scroll = { current: 0, target: 0 };
     this.pointer = null;
+    this.touch = null;
     this.suppressClick = false;
     this.suppressClickUntil = 0;
     this.gestureLockThreshold = this.isMobileLayout ? 4 : 8;
@@ -2516,6 +2598,9 @@ class CertificateGallery {
     this.onPointerMove = this.onPointerMove.bind(this);
     this.onPointerUp = this.onPointerUp.bind(this);
     this.onLostPointerCapture = this.onLostPointerCapture.bind(this);
+    this.onTouchStart = this.onTouchStart.bind(this);
+    this.onTouchMove = this.onTouchMove.bind(this);
+    this.onTouchEnd = this.onTouchEnd.bind(this);
     this.onSelectStart = this.onSelectStart.bind(this);
     this.onDragStart = this.onDragStart.bind(this);
     this.onKeyDown = this.onKeyDown.bind(this);
@@ -2528,6 +2613,10 @@ class CertificateGallery {
     this.root.addEventListener("pointerup", this.onPointerUp);
     this.root.addEventListener("pointercancel", this.onLostPointerCapture);
     this.root.addEventListener("lostpointercapture", this.onLostPointerCapture);
+    this.root.addEventListener("touchstart", this.onTouchStart, { passive: true });
+    this.root.addEventListener("touchmove", this.onTouchMove, { passive: false });
+    this.root.addEventListener("touchend", this.onTouchEnd, { passive: false });
+    this.root.addEventListener("touchcancel", this.onTouchEnd, { passive: false });
     this.root.addEventListener("selectstart", this.onSelectStart);
     this.root.addEventListener("dragstart", this.onDragStart);
     this.root.addEventListener("keydown", this.onKeyDown);
@@ -2630,7 +2719,70 @@ class CertificateGallery {
     this.start();
   }
 
+  onTouchStart(event) {
+    if (!this.isMobileLayout || event.touches.length !== 1) return;
+    const touch = event.touches[0];
+    this.pointer = null;
+    this.touch = {
+      startX: touch.clientX,
+      startY: touch.clientY,
+      startTarget: this.scroll.target,
+      gesture: "pending",
+      moved: false,
+      cardIndex: Number(event.target.closest(".certificate-gallery-card")?.dataset.certificateIndex)
+    };
+    this.markInteraction();
+  }
+
+  onTouchMove(event) {
+    if (!this.touch || event.touches.length !== 1) return;
+    const touch = event.touches[0];
+    const distance = this.touch.startX - touch.clientX;
+    const verticalDistance = touch.clientY - this.touch.startY;
+    const absX = Math.abs(distance);
+    const absY = Math.abs(verticalDistance);
+
+    if (Math.hypot(distance, verticalDistance) > 5) this.touch.moved = true;
+
+    if (this.touch.gesture === "pending" && Math.max(absX, absY) > 2) {
+      if (absY > absX * 1.35) {
+        this.touch.gesture = "scroll";
+        this.suppressClick = true;
+        this.suppressClickUntil = performance.now() + 650;
+        return;
+      }
+      this.touch.gesture = "drag";
+    }
+
+    if (this.touch.gesture !== "drag") return;
+
+    if (event.cancelable) event.preventDefault();
+    this.markInteraction();
+    this.scroll.target = this.touch.startTarget + distance * this.scrollSpeed * 1.42;
+    this.scroll.current += (this.scroll.target - this.scroll.current) * 0.72;
+    this.render(performance.now(), false);
+  }
+
+  onTouchEnd(event) {
+    if (!this.touch || event.touches.length) return;
+    const { moved, cardIndex, gesture } = this.touch;
+    this.touch = null;
+
+    if (!moved && gesture !== "scroll" && Number.isInteger(cardIndex)) {
+      this.suppressClick = true;
+      this.openCard(cardIndex);
+    } else {
+      this.suppressClick = moved;
+      if (moved) this.suppressClickUntil = performance.now() + 650;
+    }
+
+    window.setTimeout(() => {
+      this.suppressClick = false;
+    }, moved ? 220 : 0);
+  }
+
   onPointerDown(event) {
+    if (event.pointerType === "touch" && this.isMobileLayout) return;
     if (event.button !== 0) return;
     // Prevent a long drag from turning certificate labels or images into a blue
     // browser selection while preserving the gallery's click and key controls.
@@ -2651,6 +2803,7 @@ class CertificateGallery {
   }
 
   onPointerMove(event) {
+    if (event.pointerType === "touch" && this.isMobileLayout) return;
     if (!this.pointer || event.pointerId !== this.pointer.id) return;
     if (event.pointerType === "mouse" && (event.buttons & 1) === 0) {
       this.onLostPointerCapture();
@@ -2688,6 +2841,7 @@ class CertificateGallery {
   }
 
   onPointerUp(event) {
+    if (event.pointerType === "touch" && this.isMobileLayout) return;
     if (!this.pointer || event.pointerId !== this.pointer.id) return;
     const totalX = Math.abs(event.clientX - this.pointer.startX);
     const totalY = Math.abs(event.clientY - this.pointer.startY);

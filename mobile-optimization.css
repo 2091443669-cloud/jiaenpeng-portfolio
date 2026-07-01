@@ -26,7 +26,12 @@
   .quick-browse {
     contain: layout paint;
     overscroll-behavior: contain;
-    touch-action: pan-y;
+    touch-action: none;
+  }
+
+  .quick-dome-main,
+  .quick-dome-stage {
+    touch-action: none;
   }
 
   .quick-browse.is-horizontal-drag {
@@ -105,7 +110,10 @@
     background: #fff;
   }
 
-  .certificate-gallery,
+  .certificate-gallery {
+    touch-action: pan-y;
+  }
+
   .timeline-grid {
     touch-action: pan-y;
   }
