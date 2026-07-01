@@ -56,6 +56,11 @@ html {
   scroll-behavior: smooth;
 }
 
+html.is-scroll-locked {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
 body {
   min-width: 320px;
   margin: 0;
@@ -672,6 +677,13 @@ main {
   display: block;
   width: 100%;
   height: 100%;
+}
+
+.liquid-ether-mount.is-motion-reduced {
+  background:
+    radial-gradient(circle at 30% 22%, rgba(255, 159, 252, 0.24), transparent 30%),
+    radial-gradient(circle at 72% 70%, rgba(82, 39, 255, 0.28), transparent 34%),
+    #080512;
 }
 
 .liquid-ether-container {
@@ -1324,6 +1336,7 @@ html.is-page-entered .hero-liquid .hero-index {
   background: #050505;
   cursor: grab;
   isolation: isolate;
+  overscroll-behavior: contain;
   touch-action: pan-y;
   user-select: none;
   -webkit-user-select: none;
@@ -2156,6 +2169,10 @@ html.is-page-entered .hero-liquid .hero-index {
   opacity: 0.92;
 }
 
+.awards-light-rays.is-static canvas {
+  display: none;
+}
+
 .timeline-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -2788,10 +2805,44 @@ html.is-page-entered .hero-liquid .hero-index {
   max-height: calc(100vh - 96px);
   cursor: zoom-in;
   object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
 .modal-media img[hidden] {
   display: none;
+}
+
+.modal-media.is-swiping img {
+  cursor: grabbing;
+}
+
+.modal-image-dots {
+  display: none;
+}
+
+.modal-image-dot {
+  width: 7px;
+  height: 7px;
+  border: 0;
+  border-radius: 50%;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.36);
+  transition:
+    width 180ms ease,
+    background 180ms ease,
+    opacity 180ms ease;
+}
+
+.modal-image-dot.is-active {
+  width: 18px;
+  border-radius: 999px;
+  background: #fff;
+}
+
+.modal-image-dot:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
 }
 
 .modal-pdf {
@@ -3519,6 +3570,16 @@ html[lang="en"] .resume-block-heading h3 {
     font-size: 15px;
   }
 
+  .ambient-canvas {
+    display: none;
+  }
+
+  .liquid-ether-mount,
+  .liquid-ether-container {
+    pointer-events: none;
+    touch-action: pan-y;
+  }
+
   .site-header {
     grid-template-columns: auto 1fr auto;
     gap: 12px;
@@ -3705,27 +3766,63 @@ html[lang="en"] .resume-block-heading h3 {
   .modal-panel {
     inset: 8px;
     display: flex;
+    height: calc(100svh - 16px);
     max-height: calc(100svh - 16px);
     flex-direction: column;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .project-modal.is-open {
+    overscroll-behavior: contain;
   }
 
   .modal-media {
+    position: relative;
+    grid-template-rows: minmax(0, 1fr) auto;
+    gap: 10px;
     min-height: 0;
     max-height: 46svh;
     flex: 0 0 clamp(250px, 43svh, 360px);
+    overflow: hidden;
     padding: 12px;
+    overscroll-behavior: contain;
     touch-action: pan-y;
   }
 
   .modal-media img {
     min-height: 0;
     max-height: 100%;
+    touch-action: pan-y;
+    will-change: transform, opacity;
   }
 
   .modal-media.is-pdf {
+    grid-template-rows: minmax(0, 1fr);
     max-height: none;
     flex: 1 1 48%;
     padding: 0;
+  }
+
+  .modal-media.is-pdf-preview {
+    max-height: 46svh;
+    flex: 0 0 clamp(250px, 43svh, 360px);
+    padding: 12px;
+    background: #11110f;
+  }
+
+  .modal-image-dots:not([hidden]) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-height: 18px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: color-mix(in srgb, #000 30%, transparent);
   }
 
   .modal-pdf {
@@ -3736,10 +3833,9 @@ html[lang="en"] .resume-block-heading h3 {
     position: relative;
     z-index: 1;
     min-height: 0;
-    flex: 1 1 0;
-    overflow-y: auto;
+    flex: 0 0 auto;
+    overflow: visible;
     background: var(--surface);
-    -webkit-overflow-scrolling: touch;
   }
 
   .image-viewer-panel {

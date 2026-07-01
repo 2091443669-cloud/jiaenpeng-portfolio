@@ -1112,6 +1112,9 @@ let certificateGallery = null;
 let awardsLightRays = null;
 let quickBrowse = null;
 let archiveSectionObserver = null;
+let scrollLockDepth = 0;
+let lockedScrollY = 0;
+let scrollLockMode = null;
 
 const awardCertificates = [
   {
@@ -1189,6 +1192,7 @@ const hiddenFromSelected = new Set([
 const selectedGrid = document.querySelector("#selected-grid");
 const archiveGrid = document.querySelector("#archive-grid");
 const modal = document.querySelector("#project-modal");
+const modalPanel = document.querySelector(".modal-panel");
 const modalMedia = document.querySelector(".modal-media");
 const modalImage = document.querySelector("#modal-image");
 const modalPdf = document.querySelector("#modal-pdf");
@@ -1200,6 +1204,7 @@ const modalCase = document.querySelector("#modal-case");
 const modalCount = document.querySelector("#modal-count");
 const modalGallery = document.querySelector("#modal-gallery");
 const modalOriginal = document.querySelector("#modal-original");
+const modalImageDots = document.querySelector("#modal-image-dots");
 const imageViewer = document.querySelector("#image-viewer");
 const viewerStage = document.querySelector("#image-viewer-stage");
 const viewerImage = document.querySelector("#viewer-image");
@@ -1218,6 +1223,8 @@ const liquidEtherMount = document.querySelector("#liquidEtherMount");
 let destroyLiquidEther = null;
 let splitTextObserver = null;
 let sectionEntranceObserver = null;
+let pointer = { x: 0.5, y: 0.5 };
+let particles = [];
 let viewerZoom = 1;
 let viewerPan = { x: 0, y: 0 };
 let viewerItems = [];
@@ -1232,21 +1239,29 @@ function mountLiquidEther() {
   if (!liquidEtherMount || !window.LiquidEtherReact || !window.THREE) return;
   if (destroyLiquidEther) destroyLiquidEther();
   liquidEtherMount.replaceChildren();
+  const mobileLite = isMobileViewport();
+  const reduceMotion = prefersReducedMotion();
+  liquidEtherMount.classList.toggle("is-mobile-lite", mobileLite);
+  liquidEtherMount.classList.toggle("is-motion-reduced", reduceMotion);
+  if (reduceMotion) {
+    destroyLiquidEther = null;
+    return;
+  }
   destroyLiquidEther = window.LiquidEtherReact.mount(liquidEtherMount, {
     colors: ["#5227FF", "#FF9FFC", "#B497CF"],
-    mouseForce: 13,
-    cursorSize: 140,
+    mouseForce: mobileLite ? 7 : 13,
+    cursorSize: mobileLite ? 92 : 140,
     isViscous: true,
-    viscous: 30,
-    iterationsViscous: 16,
-    iterationsPoisson: 20,
-    resolution: 0.35,
+    viscous: mobileLite ? 18 : 30,
+    iterationsViscous: mobileLite ? 8 : 16,
+    iterationsPoisson: mobileLite ? 10 : 20,
+    resolution: mobileLite ? 0.22 : 0.35,
     isBounce: false,
     autoDemo: true,
-    autoSpeed: 0.35,
-    autoIntensity: 1.6,
+    autoSpeed: mobileLite ? 0.18 : 0.35,
+    autoIntensity: mobileLite ? 0.8 : 1.6,
     takeoverDuration: 0.25,
-    autoResumeDelay: 3000,
+    autoResumeDelay: mobileLite ? 4200 : 3000,
     autoRampDuration: 0.6
   });
 }
@@ -1762,7 +1777,8 @@ class QuickBrowseDome {
   constructor(root, projectsList) {
     this.root = root;
     this.projects = this.shuffleProjects(projectsList.filter((project) => project.images?.length));
-    this.columns = 30;
+    this.isMobileLayout = isMobileViewport();
+    this.columns = this.isMobileLayout ? 24 : 30;
     this.viewScale = 0.68;
     this.baseLatitudes = [-24, -8, 8, 24];
     // Adjacent columns are offset by exactly half of one row step.
@@ -1771,10 +1787,18 @@ class QuickBrowseDome {
     this.rotation = { x: 0, y: 0 };
     this.targetRotation = { y: 0 };
     this.rotationEase = 0.06;
+    this.touchRotationEase = 0.2;
+    this.pointerRotationSpeed = 0.07;
+    this.touchRotationSpeed = 0.13;
+    this.gestureLockThreshold = 7;
+    this.gestureLockRatio = 1.12;
     this.pointer = null;
+    this.holdSnapshot = null;
     this.suppressClick = false;
     this.lastInteraction = performance.now();
     this.lastFrameTime = performance.now();
+    this.lastPaintTime = 0;
+    this.frameInterval = this.isMobileLayout ? 1000 / 45 : 0;
     this.isVisible = true;
     this.raf = null;
 
@@ -1971,7 +1995,7 @@ class QuickBrowseDome {
     image.alt = "";
     image.draggable = false;
     image.decoding = "async";
-    image.loading = index < this.columns ? "eager" : "lazy";
+    image.loading = index < (this.isMobileLayout ? 12 : this.columns) ? "eager" : "lazy";
     image.addEventListener(
       "error",
       () => {
@@ -2026,25 +2050,28 @@ class QuickBrowseDome {
     if (event.button !== 0) return;
     // The surface is a drag control, not selectable content.  Stop the browser
     // from beginning a native text/image selection before pointer capture takes over.
-    if (event.cancelable) event.preventDefault();
+    if (event.pointerType !== "touch" && event.cancelable) event.preventDefault();
     const projectId = event.target.closest(".quick-dome-tile")?.dataset.projectId || null;
     this.pointer = {
       id: event.pointerId,
       startX: event.clientX,
       startY: event.clientY,
+      lastX: event.clientX,
+      lastY: event.clientY,
       startRotation: { ...this.targetRotation },
+      gesture: event.pointerType === "touch" ? "pending" : "drag",
+      pointerType: event.pointerType,
       projectId,
       sourceTile: event.target.closest(".quick-dome-tile"),
       moved: false
     };
     this.markInteraction();
-    this.root.setPointerCapture?.(event.pointerId);
+    if (event.pointerType !== "touch") this.root.setPointerCapture?.(event.pointerId);
   }
 
   onPointerMove(event) {
     if (event.pointerType === "mouse") this.updateCrosshairTarget(event);
     if (!this.pointer || event.pointerId !== this.pointer.id) return;
-    if (event.cancelable) event.preventDefault();
     if (event.pointerType === "mouse" && (event.buttons & 1) === 0) {
       this.onLostPointerCapture();
       return;
@@ -2053,8 +2080,46 @@ class QuickBrowseDome {
     const dx = event.clientX - this.pointer.startX;
     const dy = event.clientY - this.pointer.startY;
     if (Math.hypot(dx, dy) > 8) this.pointer.moved = true;
-    this.targetRotation.y = this.pointer.startRotation.y + dx * 0.07;
+    if (this.pointer.pointerType === "touch") {
+      const absX = Math.abs(dx);
+      const absY = Math.abs(dy);
+      if (this.pointer.gesture === "pending" && Math.max(absX, absY) > this.gestureLockThreshold) {
+        if (absX > absY * this.gestureLockRatio) {
+          this.pointer.gesture = "drag";
+          this.root.classList.add("is-horizontal-dragging");
+          this.root.setPointerCapture?.(event.pointerId);
+        } else if (absY > absX * this.gestureLockRatio) {
+          this.pointer.gesture = "scroll";
+          this.pointer.lastX = event.clientX;
+          this.pointer.lastY = event.clientY;
+          this.pointer.moved = true;
+          this.root.classList.add("is-vertical-scrolling");
+          return;
+        }
+      }
+
+      if (this.pointer.gesture === "scroll") {
+        this.pointer.lastX = event.clientX;
+        this.pointer.lastY = event.clientY;
+        this.markInteraction();
+        return;
+      }
+
+      if (this.pointer.gesture === "pending") {
+        return;
+      }
+    }
+
+    if (event.cancelable) event.preventDefault();
+    const rotationSpeed = this.pointer.pointerType === "touch" && isMobileViewport()
+      ? this.touchRotationSpeed
+      : this.pointerRotationSpeed;
+    this.targetRotation.y = this.pointer.startRotation.y + dx * rotationSpeed;
     this.rotation.x = 0;
+    if (this.pointer.pointerType === "touch" && isMobileViewport()) {
+      this.rotation.y += (this.targetRotation.y - this.rotation.y) * 0.32;
+      this.applyTransform();
+    }
     this.markInteraction();
   }
 
@@ -2115,7 +2180,7 @@ class QuickBrowseDome {
   onPointerUp(event) {
     if (!this.pointer || event.pointerId !== this.pointer.id) return;
     const { moved, projectId, sourceTile } = this.pointer;
-    this.pointer = null;
+    this.resetPointer();
     this.suppressClick = true;
 
     if (!moved && projectId) {
@@ -2129,7 +2194,47 @@ class QuickBrowseDome {
   }
 
   onLostPointerCapture() {
+    const shouldSuppressClick = Boolean(this.pointer?.moved);
+    this.resetPointer();
+    if (shouldSuppressClick) {
+      this.suppressClick = true;
+      window.setTimeout(() => {
+        this.suppressClick = false;
+      }, 260);
+    }
+  }
+
+  resetPointer() {
     this.pointer = null;
+    this.root.classList.remove("is-horizontal-dragging", "is-vertical-scrolling");
+  }
+
+  holdPosition() {
+    if (this.holdSnapshot) return;
+
+    this.holdSnapshot = {
+      rotationY: this.rotation.y
+    };
+    if (this.raf) {
+      window.cancelAnimationFrame(this.raf);
+      this.raf = null;
+    }
+    this.targetRotation.y = this.rotation.y;
+    this.resetPointer();
+    this.markInteraction();
+    this.applyTransform();
+  }
+
+  restoreHeldPosition() {
+    if (!this.holdSnapshot) return;
+
+    this.rotation.y = this.holdSnapshot.rotationY;
+    this.targetRotation.y = this.holdSnapshot.rotationY;
+    this.holdSnapshot = null;
+    this.lastFrameTime = performance.now();
+    this.markInteraction();
+    this.applyTransform();
+    this.start();
   }
 
   onSelectStart(event) {
@@ -2164,16 +2269,24 @@ class QuickBrowseDome {
 
   frame(timestamp) {
     this.raf = null;
-    if (!this.isVisible || document.hidden) return;
+    if (!this.isVisible || document.hidden || this.holdSnapshot) return;
+    if (this.frameInterval && timestamp - this.lastPaintTime < this.frameInterval) {
+      this.raf = window.requestAnimationFrame(this.frame);
+      return;
+    }
+    this.lastPaintTime = timestamp;
     const delta = Math.min(64, Math.max(0, timestamp - this.lastFrameTime));
     this.lastFrameTime = timestamp;
-    if (!this.pointer && timestamp - this.lastInteraction > 1800) {
+    if (!this.pointer && !this.holdSnapshot && timestamp - this.lastInteraction > 1800) {
       this.targetRotation.y += delta * 0.0032;
     }
 
     const distance = this.targetRotation.y - this.rotation.y;
     if (Math.abs(distance) > 0.001) {
-      const follow = 1 - (1 - this.rotationEase) ** (delta / (1000 / 60));
+      const ease = this.pointer?.pointerType === "touch" && this.pointer.gesture === "drag" && isMobileViewport()
+        ? this.touchRotationEase
+        : this.rotationEase;
+      const follow = 1 - (1 - ease) ** (delta / (1000 / 60));
       this.rotation.y += distance * follow;
       this.applyTransform();
     }
@@ -2361,6 +2474,10 @@ class AwardsLightRays {
 function initAwardsLightRays() {
   const mount = document.querySelector("#awards-light-rays");
   if (!mount || awardsLightRays) return;
+  if (isMobileViewport() || prefersReducedMotion()) {
+    mount.classList.add("is-static");
+    return;
+  }
   awardsLightRays = new AwardsLightRays(mount);
 }
 
@@ -2368,16 +2485,22 @@ class CertificateGallery {
   constructor(root, items, { bend = 1, scrollSpeed = 2, scrollEase = 0.05 } = {}) {
     this.root = root;
     this.items = items;
+    this.isMobileLayout = isMobileViewport();
     this.bend = bend;
     this.scrollSpeed = scrollSpeed;
     this.scrollEase = scrollEase;
     this.scroll = { current: 0, target: 0 };
     this.pointer = null;
     this.suppressClick = false;
-    this.autoSpeed = 0.022;
-    this.autoResumeDelay = 3000;
+    this.suppressClickUntil = 0;
+    this.gestureLockThreshold = 8;
+    this.gestureLockRatio = 1.1;
+    this.autoSpeed = this.isMobileLayout ? 0.014 : 0.022;
+    this.autoResumeDelay = this.isMobileLayout ? 4400 : 3000;
     this.lastInteraction = performance.now();
     this.lastFrameTime = performance.now();
+    this.lastPaintTime = 0;
+    this.frameInterval = this.isMobileLayout ? 1000 / 40 : 0;
     this.isVisible = typeof IntersectionObserver === "undefined";
     this.raf = null;
     this.motionQuery = window.matchMedia?.("(prefers-reduced-motion: reduce)");
@@ -2403,7 +2526,7 @@ class CertificateGallery {
     this.root.addEventListener("pointerdown", this.onPointerDown);
     this.root.addEventListener("pointermove", this.onPointerMove);
     this.root.addEventListener("pointerup", this.onPointerUp);
-    this.root.addEventListener("pointercancel", this.onPointerUp);
+    this.root.addEventListener("pointercancel", this.onLostPointerCapture);
     this.root.addEventListener("lostpointercapture", this.onLostPointerCapture);
     this.root.addEventListener("selectstart", this.onSelectStart);
     this.root.addEventListener("dragstart", this.onDragStart);
@@ -2434,8 +2557,11 @@ class CertificateGallery {
       <span class="certificate-gallery-media"><img src="${item.image}" alt="" loading="lazy" draggable="false" /></span>
       <span class="certificate-gallery-copy"><span>${item.year}</span><strong></strong><small></small></span>
     `;
-    card.addEventListener("click", () => {
-      if (this.suppressClick) return;
+    card.addEventListener("click", (event) => {
+      if (this.suppressClick || performance.now() < this.suppressClickUntil) {
+        event.preventDefault();
+        return;
+      }
       this.openCard(index);
     });
     this.track.appendChild(card);
@@ -2508,52 +2634,92 @@ class CertificateGallery {
     if (event.button !== 0) return;
     // Prevent a long drag from turning certificate labels or images into a blue
     // browser selection while preserving the gallery's click and key controls.
-    if (event.cancelable) event.preventDefault();
+    const isTouchMobile = event.pointerType === "touch" && isMobileViewport();
+    if (!isTouchMobile && event.cancelable) event.preventDefault();
     this.markInteraction();
     this.pointer = {
       id: event.pointerId,
       startX: event.clientX,
+      startY: event.clientY,
       startTarget: this.scroll.target,
+      gesture: isTouchMobile ? "pending" : "drag",
+      pointerType: event.pointerType,
       moved: false,
       cardIndex: Number(event.target.closest(".certificate-gallery-card")?.dataset.certificateIndex)
     };
-    this.root.setPointerCapture?.(event.pointerId);
+    if (!isTouchMobile) this.root.setPointerCapture?.(event.pointerId);
   }
 
   onPointerMove(event) {
     if (!this.pointer || event.pointerId !== this.pointer.id) return;
-    if (event.cancelable) event.preventDefault();
-    if ((event.buttons & 1) === 0) {
+    if (event.pointerType === "mouse" && (event.buttons & 1) === 0) {
       this.onLostPointerCapture();
       return;
     }
-    this.markInteraction();
+
     const distance = this.pointer.startX - event.clientX;
-    if (Math.abs(distance) > 10) this.pointer.moved = true;
+    const verticalDistance = event.clientY - this.pointer.startY;
+    if (Math.hypot(distance, verticalDistance) > 10) this.pointer.moved = true;
+    if (this.pointer.pointerType === "touch" && isMobileViewport()) {
+      const absX = Math.abs(distance);
+      const absY = Math.abs(verticalDistance);
+
+      if (this.pointer.gesture === "pending" && Math.max(absX, absY) > this.gestureLockThreshold) {
+        if (absX > absY * this.gestureLockRatio) {
+          this.pointer.gesture = "drag";
+          this.pointer.moved = true;
+          this.root.setPointerCapture?.(event.pointerId);
+        } else if (absY > absX * this.gestureLockRatio) {
+          this.pointer.gesture = "scroll";
+          this.pointer.moved = true;
+          this.suppressClick = true;
+          this.suppressClickUntil = performance.now() + 800;
+          return;
+        }
+      }
+
+      if (this.pointer.gesture === "scroll" || this.pointer.gesture === "pending") return;
+    }
+
+    if (event.cancelable) event.preventDefault();
+    this.markInteraction();
     this.scroll.target = this.pointer.startTarget + distance * this.scrollSpeed * 0.7;
   }
 
   onPointerUp(event) {
     if (!this.pointer || event.pointerId !== this.pointer.id) return;
-    const { moved, cardIndex } = this.pointer;
+    const totalX = Math.abs(event.clientX - this.pointer.startX);
+    const totalY = Math.abs(event.clientY - this.pointer.startY);
+    const isVerticalDrag = totalY > 12 && totalY > totalX;
+    const moved = this.pointer.moved || isVerticalDrag;
+    const { cardIndex, gesture } = this.pointer;
     this.pointer = null;
 
-    if (!moved && Number.isInteger(cardIndex)) {
+    if (!moved && gesture !== "scroll" && Number.isInteger(cardIndex)) {
       // Pointer capture can prevent a native click from reaching the button.
       // Open directly on release, then ignore that duplicate native click.
       this.suppressClick = true;
       this.openCard(cardIndex);
     } else {
       this.suppressClick = moved;
+      if (moved) this.suppressClickUntil = performance.now() + 800;
     }
 
     window.setTimeout(() => {
       this.suppressClick = false;
-    }, 0);
+    }, moved ? 260 : 0);
   }
 
   onLostPointerCapture() {
+    const shouldSuppressClick = Boolean(this.pointer?.moved);
     this.pointer = null;
+    if (shouldSuppressClick) {
+      this.suppressClick = true;
+      this.suppressClickUntil = performance.now() + 800;
+      window.setTimeout(() => {
+        this.suppressClick = false;
+      }, 800);
+    }
   }
 
   onSelectStart(event) {
@@ -2616,6 +2782,11 @@ class CertificateGallery {
   frame(timestamp) {
     this.raf = null;
     if (!this.isVisible || document.hidden || this.prefersReducedMotion) return;
+    if (this.frameInterval && timestamp - this.lastPaintTime < this.frameInterval) {
+      this.start();
+      return;
+    }
+    this.lastPaintTime = timestamp;
     this.render(timestamp, true);
     this.start();
   }
@@ -2844,6 +3015,54 @@ function setPageBackgroundInert(isInert) {
   });
 }
 
+function isMobileViewport() {
+  return window.matchMedia?.("(max-width: 760px)").matches ?? window.innerWidth <= 760;
+}
+
+function prefersReducedMotion() {
+  return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+}
+
+function lockPageScroll() {
+  if (scrollLockDepth === 0) {
+    if (isMobileViewport()) {
+      scrollLockMode = "fixed";
+      lockedScrollY = window.scrollY || window.pageYOffset || 0;
+      document.documentElement.classList.add("is-scroll-locked");
+      document.body.style.position = "fixed";
+      document.body.style.top = `-${lockedScrollY}px`;
+      document.body.style.left = "0";
+      document.body.style.right = "0";
+      document.body.style.width = "100%";
+    } else {
+      scrollLockMode = "overflow";
+    }
+    document.body.style.overflow = "hidden";
+  }
+
+  scrollLockDepth += 1;
+}
+
+function unlockPageScroll() {
+  if (scrollLockDepth === 0) return;
+
+  scrollLockDepth -= 1;
+  if (scrollLockDepth > 0) return;
+
+  const shouldRestorePosition = scrollLockMode === "fixed";
+  if (shouldRestorePosition) {
+    document.body.style.position = "";
+    document.body.style.top = "";
+    document.body.style.left = "";
+    document.body.style.right = "";
+    document.body.style.width = "";
+  }
+  document.body.style.overflow = "";
+  document.documentElement.classList.remove("is-scroll-locked");
+  if (shouldRestorePosition) window.scrollTo(0, lockedScrollY);
+  scrollLockMode = null;
+}
+
 function trapFocus(event, container) {
   if (event.key !== "Tab") return;
 
@@ -2866,6 +3085,11 @@ function trapFocus(event, container) {
 function openProject(projectId, sourceElement = null) {
   const project = allProjects().find((item) => item.id === projectId);
   if (!project) return;
+  const modalWasOpen = modal.classList.contains("is-open");
+
+  if (!modalWasOpen && isMobileViewport()) {
+    quickBrowse?.holdPosition();
+  }
 
   lastProjectTrigger = sourceElement instanceof HTMLElement
     ? sourceElement
@@ -2884,9 +3108,7 @@ function openProject(projectId, sourceElement = null) {
   modalCategory.textContent = projectCategory(project);
   modalDescription.textContent = projectDescription(project);
   const isPdfProject = Boolean(project.pdfFile);
-  modalMedia.classList.toggle("is-pdf", isPdfProject);
-  modalImage.hidden = isPdfProject;
-  modalPdf.hidden = !isPdfProject;
+  const useMobilePdfPreview = isPdfProject && isMobileViewport();
   modalCount.textContent = isPdfProject
     ? language === "zh"
       ? "PDF 手册"
@@ -2900,7 +3122,12 @@ function openProject(projectId, sourceElement = null) {
   modalSkills.innerHTML = renderCapabilityChips(project, "modal-skill-chip");
   modalCase.innerHTML = "";
   modalGallery.innerHTML = "";
+  modalMedia.classList.toggle("is-pdf", isPdfProject && !useMobilePdfPreview);
+  modalMedia.classList.toggle("is-pdf-preview", useMobilePdfPreview);
+  modalImage.hidden = isPdfProject && !useMobilePdfPreview;
+  modalPdf.hidden = !isPdfProject || useMobilePdfPreview;
   modalGallery.hidden = isPdfProject;
+  renderModalImageDots(project);
 
   const caseNote = projectCase(project);
   if (caseNote) {
@@ -2927,12 +3154,19 @@ function openProject(projectId, sourceElement = null) {
   }
 
   if (isPdfProject) {
-    const pdfSrc = `${projectPdfPath(project)}#toolbar=0&navpanes=0&view=FitH`;
-    modalPdf.src = pdfSrc;
     modalOriginal.href = projectPdfPath(project);
     modalOriginal.target = "_blank";
     modalOriginal.rel = "noreferrer";
-    modalImage.removeAttribute("src");
+    if (useMobilePdfPreview) {
+      modalPdf.src = "about:blank";
+      modalImage.src = previewPath(project, project.coverImage || project.images[0]);
+      modalImage.alt = projectTitle(project);
+    } else {
+      const pdfSrc = `${projectPdfPath(project)}#toolbar=0&navpanes=0&view=FitH`;
+      modalPdf.src = pdfSrc;
+      modalImage.removeAttribute("src");
+    }
+    if (modalImageDots) modalImageDots.hidden = true;
   } else {
     modalOriginal.removeAttribute("target");
     modalOriginal.removeAttribute("rel");
@@ -2949,8 +3183,9 @@ function openProject(projectId, sourceElement = null) {
   }
   modal.classList.add("is-open");
   modal.setAttribute("aria-hidden", "false");
+  if (isMobileViewport()) modalPanel.scrollTop = 0;
   setPageBackgroundInert(true);
-  document.body.style.overflow = "hidden";
+  if (!modalWasOpen) lockPageScroll();
   requestAnimationFrame(() => modal.querySelector(".modal-close")?.focus());
 }
 
@@ -2963,48 +3198,112 @@ function setModalImage(project, image, activeThumb) {
     modalGallery.querySelectorAll(".thumb-btn").forEach((button) => button.classList.remove("is-active"));
     activeThumb.classList.add("is-active");
   }
+
+  updateModalImageDots(project);
+  preloadModalNeighbors(project);
 }
 
 function isMobileProjectGallery() {
   return Boolean(
     activeProject &&
     !activeProject.pdfFile &&
-    window.matchMedia?.("(max-width: 760px)").matches
+    isMobileViewport()
   );
+}
+
+function currentModalImageIndex(project = activeProject) {
+  if (!project?.images?.length) return 0;
+
+  const currentSource = modalOriginal.getAttribute("href");
+  return Math.max(
+    project.images.findIndex((image) => imagePath(project, image) === currentSource),
+    0
+  );
+}
+
+function renderModalImageDots(project) {
+  if (!modalImageDots) return;
+
+  modalImageDots.innerHTML = "";
+  const shouldShow = Boolean(project && isMobileViewport() && !project.pdfFile && project.images.length > 1);
+  modalImageDots.hidden = !shouldShow;
+  if (!shouldShow) return;
+
+  project.images.forEach((_, index) => {
+    const dot = document.createElement("button");
+    dot.className = "modal-image-dot";
+    dot.type = "button";
+    dot.dataset.modalImageIndex = String(index);
+    dot.setAttribute("aria-label", language === "zh" ? `查看第 ${index + 1} 张作品图` : `View image ${index + 1}`);
+    modalImageDots.appendChild(dot);
+  });
+}
+
+function updateModalImageDots(project = activeProject) {
+  if (!modalImageDots || modalImageDots.hidden || !project?.images?.length) return;
+
+  const activeIndex = currentModalImageIndex(project);
+  modalImageDots.querySelectorAll(".modal-image-dot").forEach((dot, index) => {
+    const isActive = index === activeIndex;
+    dot.classList.toggle("is-active", isActive);
+    dot.setAttribute("aria-current", isActive ? "true" : "false");
+  });
+}
+
+function setModalImageByIndex(index) {
+  if (!activeProject?.images?.length) return;
+
+  const nextIndex = clamp(index, 0, activeProject.images.length - 1);
+  const nextThumb = modalGallery.querySelectorAll(".thumb-btn")[nextIndex];
+  setModalImage(activeProject, activeProject.images[nextIndex], nextThumb);
+}
+
+function preloadModalNeighbors(project = activeProject) {
+  if (!project?.images?.length || project.pdfFile) return;
+
+  const currentIndex = currentModalImageIndex(project);
+  [-1, 1].forEach((direction) => {
+    const image = project.images[(currentIndex + direction + project.images.length) % project.images.length];
+    if (!image) return;
+    const preload = new Image();
+    preload.src = previewPath(project, image);
+  });
 }
 
 function moveModalImage(direction) {
   if (!activeProject?.images?.length) return;
 
-  const currentSource = modalOriginal.getAttribute("href");
-  const currentIndex = Math.max(
-    activeProject.images.findIndex((image) => imagePath(activeProject, image) === currentSource),
-    0
-  );
+  const currentIndex = currentModalImageIndex(activeProject);
   const nextIndex = (currentIndex + direction + activeProject.images.length) % activeProject.images.length;
-  const nextImage = activeProject.images[nextIndex];
-  const nextThumb = modalGallery.querySelectorAll(".thumb-btn")[nextIndex];
-
-  setModalImage(activeProject, nextImage, nextThumb);
+  setModalImageByIndex(nextIndex);
 }
 
 function closeProject() {
   closeImageViewer({ restoreFocus: false });
+  quickBrowse?.restoreHeldPosition();
   modalSwipe = null;
   suppressModalImageClick = false;
+  modalMedia.classList.remove("is-swiping");
+  modalImage.style.transition = "";
+  modalImage.style.transform = "";
+  modalImage.style.opacity = "";
   modal.classList.remove("is-open");
   modal.setAttribute("aria-hidden", "true");
   modalImage.removeAttribute("src");
   modalImage.hidden = false;
   modalPdf.src = "about:blank";
   modalPdf.hidden = true;
-  modalMedia.classList.remove("is-pdf");
+  modalMedia.classList.remove("is-pdf", "is-pdf-preview");
   modalGallery.hidden = false;
+  if (modalImageDots) {
+    modalImageDots.innerHTML = "";
+    modalImageDots.hidden = true;
+  }
   modalOriginal.removeAttribute("href");
   modalOriginal.removeAttribute("target");
   modalOriginal.removeAttribute("rel");
   setPageBackgroundInert(false);
-  document.body.style.overflow = "";
+  unlockPageScroll();
 
   const trigger = lastProjectTrigger;
   lastProjectTrigger = null;
@@ -3076,7 +3375,7 @@ function openImageViewer(src, caption, items, startIndex) {
 
   imageViewer.classList.add("is-open");
   imageViewer.setAttribute("aria-hidden", "false");
-  document.body.style.overflow = "hidden";
+  lockPageScroll();
   requestAnimationFrame(() => imageViewer.querySelector(".image-viewer-close")?.focus());
 }
 
@@ -3094,7 +3393,7 @@ function closeImageViewer({ restoreFocus = true } = {}) {
   viewerNext.hidden = true;
   if (modal.classList.contains("is-open")) modal.inert = false;
   else setPageBackgroundInert(false);
-  document.body.style.overflow = modal.classList.contains("is-open") ? "hidden" : "";
+  unlockPageScroll();
 
   const trigger = lastViewerTrigger;
   lastViewerTrigger = null;
@@ -3129,14 +3428,15 @@ function setMode(mode) {
 function resizeCanvas() {
   if (!canvas || !ctx) return;
 
-  const ratio = window.devicePixelRatio || 1;
+  const ratio = isMobileViewport() ? 1 : (window.devicePixelRatio || 1);
   canvas.width = Math.floor(window.innerWidth * ratio);
   canvas.height = Math.floor(window.innerHeight * ratio);
   canvas.style.width = `${window.innerWidth}px`;
   canvas.style.height = `${window.innerHeight}px`;
   ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
 
-  particles = Array.from({ length: Math.min(48, Math.floor(window.innerWidth / 24)) }, () => ({
+  const particleCount = isMobileViewport() ? Math.min(12, Math.floor(window.innerWidth / 42)) : Math.min(48, Math.floor(window.innerWidth / 24));
+  particles = Array.from({ length: particleCount }, () => ({
     x: Math.random() * window.innerWidth,
     y: Math.random() * window.innerHeight,
     size: 1 + Math.random() * 3,
@@ -3147,6 +3447,10 @@ function resizeCanvas() {
 
 function drawAmbient() {
   if (!canvas || !ctx) return;
+  if (document.hidden) {
+    requestAnimationFrame(drawAmbient);
+    return;
+  }
 
   ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
   const styles = getComputedStyle(document.body);
@@ -3244,6 +3548,12 @@ document.addEventListener("click", (event) => {
 
   if (event.target.closest("[data-close-modal]")) {
     closeProject();
+    return;
+  }
+
+  const modalImageDot = event.target.closest("[data-modal-image-index]");
+  if (modalImageDot) {
+    setModalImageByIndex(Number(modalImageDot.dataset.modalImageIndex));
     return;
   }
 
@@ -3395,13 +3705,46 @@ viewerStage.addEventListener("pointerleave", () => {
   viewerDrag = null;
 });
 
+function setModalSwipeOffset(deltaX) {
+  const mediaWidth = Math.max(modalMedia.clientWidth, 1);
+  const offset = clamp(deltaX * 0.95, mediaWidth * -0.42, mediaWidth * 0.42);
+  const progress = Math.min(Math.abs(offset) / mediaWidth, 0.32);
+
+  modalImage.style.transition = "none";
+  modalImage.style.transform = `translate3d(${offset}px, 0, 0) scale(${1 - progress * 0.06})`;
+  modalImage.style.opacity = String(1 - progress * 0.58);
+}
+
+function resetModalSwipeOffset() {
+  modalMedia.classList.remove("is-swiping");
+  modalImage.style.transition = "transform 190ms cubic-bezier(0.22, 1, 0.36, 1), opacity 170ms ease";
+  modalImage.style.transform = "";
+  modalImage.style.opacity = "";
+  window.setTimeout(() => {
+    if (!modalSwipe) modalImage.style.transition = "";
+  }, 210);
+}
+
+function settleModalSwipe(direction) {
+  const enterX = direction > 0 ? 28 : -28;
+
+  modalMedia.classList.remove("is-swiping");
+  moveModalImage(direction);
+  modalImage.style.transition = "none";
+  modalImage.style.transform = `translate3d(${enterX}px, 0, 0) scale(0.985)`;
+  modalImage.style.opacity = "0.72";
+  requestAnimationFrame(resetModalSwipeOffset);
+}
+
 modalMedia.addEventListener("pointerdown", (event) => {
-  if (!isMobileProjectGallery()) return;
+  if (event.button !== 0) return;
+  if (!isMobileProjectGallery() || activeProject.images.length < 2) return;
 
   modalSwipe = {
     pointerId: event.pointerId,
     startX: event.clientX,
-    startY: event.clientY
+    startY: event.clientY,
+    gesture: "pending"
   };
 });
 
@@ -3410,34 +3753,56 @@ modalMedia.addEventListener("pointermove", (event) => {
 
   const deltaX = event.clientX - modalSwipe.startX;
   const deltaY = event.clientY - modalSwipe.startY;
-  if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 8) {
-    event.preventDefault();
+  const absX = Math.abs(deltaX);
+  const absY = Math.abs(deltaY);
+
+  if (modalSwipe.gesture === "pending" && Math.max(absX, absY) > 7) {
+    if (absX > absY * 1.08) {
+      modalSwipe.gesture = "swipe";
+      modalMedia.classList.add("is-swiping");
+      modalMedia.setPointerCapture?.(event.pointerId);
+    } else if (absY > absX * 1.08) {
+      modalSwipe = null;
+      return;
+    }
   }
+
+  if (modalSwipe?.gesture !== "swipe") return;
+
+  if (event.cancelable) event.preventDefault();
+  setModalSwipeOffset(deltaX);
 });
 
 function finishModalSwipe(event) {
   if (!modalSwipe || event.pointerId !== modalSwipe.pointerId) return;
 
-  const deltaX = event.clientX - modalSwipe.startX;
-  const deltaY = event.clientY - modalSwipe.startY;
+  const swipe = modalSwipe;
+  const deltaX = event.clientX - swipe.startX;
+  const deltaY = event.clientY - swipe.startY;
   const shouldChangeImage =
     isMobileProjectGallery() &&
-    Math.abs(deltaX) >= 48 &&
+    swipe.gesture === "swipe" &&
+    Math.abs(deltaX) >= Math.min(56, Math.max(32, modalMedia.clientWidth * 0.1)) &&
     Math.abs(deltaX) > Math.abs(deltaY);
 
   modalSwipe = null;
-  if (!shouldChangeImage) return;
+
+  if (!shouldChangeImage) {
+    resetModalSwipeOffset();
+    return;
+  }
 
   suppressModalImageClick = true;
-  moveModalImage(deltaX < 0 ? 1 : -1);
+  settleModalSwipe(deltaX < 0 ? 1 : -1);
   window.setTimeout(() => {
     suppressModalImageClick = false;
-  }, 0);
+  }, 220);
 }
 
 modalMedia.addEventListener("pointerup", finishModalSwipe);
 modalMedia.addEventListener("pointercancel", () => {
   modalSwipe = null;
+  resetModalSwipeOffset();
 });
 
 modalImage.addEventListener("click", () => {
@@ -3497,11 +3862,12 @@ document.addEventListener("keydown", (event) => {
 });
 
 window.addEventListener("pointermove", (event) => {
+  if (isMobileViewport()) return;
   pointer = {
     x: event.clientX / window.innerWidth,
     y: event.clientY / window.innerHeight
   };
-});
+}, { passive: true });
 
 initGooeyLanguageNav();
 initGooeyFilterNav();

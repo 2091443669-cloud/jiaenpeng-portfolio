@@ -4,7 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>贾恩棚交互作品集</title>
-    <link rel="stylesheet" href="./styles.css?v=liquid-ether-v7" />
+    <link rel="stylesheet" href="./styles.css?v=liquid-ether-v12" />
+    <link rel="stylesheet" href="./mobile-optimization.css?v=mobile-smooth-v1" />
   </head>
   <body data-mode="atelier">
     <header class="site-header" aria-label="作品集导航">
@@ -332,6 +333,7 @@
         <div class="modal-media">
           <img id="modal-image" alt="" />
           <iframe class="modal-pdf" id="modal-pdf" title="PDF preview" hidden></iframe>
+          <div class="modal-image-dots" id="modal-image-dots" aria-label="作品图片切换" hidden></div>
         </div>
         <div class="modal-content">
           <p class="modal-kicker" id="modal-category"></p>
@@ -368,7 +370,9 @@
 
     <script src="./assets/vendor/three.min.js?v=liquid-ether-v10"></script>
     <script src="./assets/vendor/liquid-ether.js?v=liquid-ether-v11"></script>
-    <script src="./app.js?v=liquid-ether-v6"></script>
+    <script src="./mobile-preflight.js?v=mobile-smooth-v1"></script>
+    <script src="./app.js?v=liquid-ether-v11"></script>
     <script src="./assets/vendor/liquid-ether-bootstrap.js?v=liquid-ether-v11"></script>
+    <script src="./mobile-optimization.js?v=mobile-smooth-v1"></script>
   </body>
 </html>

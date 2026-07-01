@@ -1,0 +1,112 @@
+@media (max-width: 760px), (pointer: coarse) {
+  html.is-mobile-smooth {
+    overscroll-behavior-y: none;
+  }
+
+  html.mobile-scroll-lock,
+  html.mobile-scroll-lock body {
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
+  .ambient-canvas {
+    display: none;
+  }
+
+  .liquid-ether-mount,
+  .liquid-ether-container {
+    pointer-events: none;
+    touch-action: pan-y;
+  }
+
+  .awards-light-rays.is-static canvas {
+    display: none;
+  }
+
+  .quick-browse {
+    contain: layout paint;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
+  }
+
+  .quick-browse.is-horizontal-drag {
+    touch-action: none;
+  }
+
+  .project-modal.is-open,
+  .image-viewer.is-open {
+    overscroll-behavior: contain;
+  }
+
+  .project-modal.is-open .modal-panel {
+    display: flex;
+    max-height: calc(100svh - 16px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
+  .project-modal.is-open .modal-content {
+    overflow: visible;
+  }
+
+  .modal-media {
+    position: relative;
+    overflow: hidden;
+    contain: layout paint;
+    touch-action: pan-y;
+  }
+
+  .modal-media.is-swipe-intent {
+    touch-action: none;
+  }
+
+  .modal-media img {
+    object-fit: contain;
+    will-change: transform, opacity;
+  }
+
+  .modal-image-dots {
+    position: absolute;
+    right: 50%;
+    bottom: 12px;
+    z-index: 4;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 8px;
+    border: 1px solid rgba(255, 255, 255, 0.24);
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.36);
+    transform: translateX(50%);
+    backdrop-filter: blur(12px);
+  }
+
+  .modal-image-dots[hidden] {
+    display: none;
+  }
+
+  .modal-image-dot {
+    width: 7px;
+    height: 7px;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.42);
+    transition:
+      width 180ms ease,
+      background-color 180ms ease,
+      transform 180ms ease;
+  }
+
+  .modal-image-dot.is-active {
+    width: 19px;
+    background: #fff;
+  }
+
+  .certificate-gallery,
+  .timeline-grid {
+    touch-action: pan-y;
+  }
+}
