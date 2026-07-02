@@ -2105,8 +2105,6 @@ class QuickBrowseDome {
     const touch = event.touches[0];
     const sourceTile = event.target.closest(".quick-dome-tile");
     this.pointer = null;
-    this.touchMomentum = 0;
-    this.touchReleaseFollow = 0;
     const now = performance.now();
     this.lastFrameTime = now;
     this.touch = {
@@ -2124,15 +2122,14 @@ class QuickBrowseDome {
       sourceTile
     };
     this.root.classList.remove("is-horizontal-dragging", "is-vertical-scrolling");
-    this.markInteraction();
     this.start();
   }
 
   onTouchMove(event) {
     if (!this.touch || event.touches.length !== 1) return;
     const touch = event.touches[0];
-    const dx = touch.clientX - this.touch.startX;
-    const dy = touch.clientY - this.touch.startY;
+    let dx = touch.clientX - this.touch.startX;
+    let dy = touch.clientY - this.touch.startY;
     const absX = Math.abs(dx);
     const absY = Math.abs(dy);
 
@@ -2144,7 +2141,19 @@ class QuickBrowseDome {
       const verticalIntent = absY >= absX || absY > absX * 0.82;
       if (horizontalIntent) {
         this.touch.gesture = "drag";
+        this.touchMomentum = 0;
+        this.touchReleaseFollow = 0;
+        this.touch.startX = touch.clientX;
+        this.touch.startY = touch.clientY;
+        this.touch.lastX = touch.clientX;
+        this.touch.lastY = touch.clientY;
+        this.touch.startRotation = { ...this.targetRotation };
+        this.touch.velocity = 0;
+        this.touch.releaseVelocity = 0;
+        dx = 0;
+        dy = 0;
         this.root.classList.add("is-horizontal-dragging");
+        this.markInteraction();
       } else if (verticalIntent) {
         this.touch.gesture = "scroll";
         this.root.classList.add("is-vertical-scrolling");
@@ -2472,7 +2481,8 @@ class QuickBrowseDome {
     this.lastPaintTime = timestamp;
     const delta = Math.min(64, Math.max(0, timestamp - this.lastFrameTime));
     this.lastFrameTime = timestamp;
-    if (!this.pointer && !this.touch && Math.abs(this.touchMomentum) > 0.00035) {
+    const isTouchDragging = this.touch?.gesture === "drag";
+    if (!this.pointer && !isTouchDragging && Math.abs(this.touchMomentum) > 0.00035) {
       this.targetRotation.y += this.touchMomentum * delta;
       const drag = this.isMobileLayout
         ? 0.0018 + Math.min(Math.abs(this.touchMomentum) * 0.006, 0.0018)
@@ -2480,11 +2490,11 @@ class QuickBrowseDome {
       this.touchMomentum *= Math.exp(-delta * drag);
       if (Math.abs(this.touchMomentum) < 0.00035) this.touchMomentum = 0;
     }
-    if (!this.pointer && !this.touch && this.touchReleaseFollow > 0) {
+    if (!this.pointer && !isTouchDragging && this.touchReleaseFollow > 0) {
       this.touchReleaseFollow *= Math.exp(-delta * (this.isMobileLayout ? 0.0048 : 0.009));
       if (this.touchReleaseFollow < 0.001) this.touchReleaseFollow = 0;
     }
-    if (!this.pointer && !this.touch && !this.touchMomentum && !this.touchReleaseFollow && !this.holdSnapshot && timestamp - this.lastInteraction > this.autoResumeDelay) {
+    if (!this.pointer && !isTouchDragging && !this.touchMomentum && !this.touchReleaseFollow && !this.holdSnapshot && timestamp - this.lastInteraction > this.autoResumeDelay) {
       this.targetRotation.y += delta * 0.0032;
     }
 
