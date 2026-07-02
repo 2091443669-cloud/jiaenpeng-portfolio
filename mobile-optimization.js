@@ -311,13 +311,18 @@
 
       if (!quickTouch.axis && Math.max(absX, absY) > 8) {
         const axisGap = Math.abs(absX - absY);
-        if (axisGap < 2) return;
-        quickTouch.axis = absX > absY ? "x" : "y";
+        const horizontalIntent = absX > absY * 1.24 && axisGap > 4;
+        const verticalIntent = absY >= absX || absY > absX * 0.82;
+        if (horizontalIntent) quickTouch.axis = "x";
+        else if (verticalIntent) quickTouch.axis = "y";
+        else return;
       }
 
       if (quickTouch.axis === "x") {
         quickBrowse.classList.add("is-horizontal-drag");
         if (event.cancelable) event.preventDefault();
+      } else if (quickTouch.axis === "y") {
+        quickBrowse.classList.remove("is-horizontal-drag");
       }
     },
     { capture: true, passive: false }

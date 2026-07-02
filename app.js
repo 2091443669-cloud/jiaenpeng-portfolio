@@ -1819,12 +1819,12 @@ class QuickBrowseDome {
     this.rotation = { x: 0, y: 0 };
     this.targetRotation = { y: 0 };
     this.rotationEase = this.isMobileLayout ? 0.075 : 0.06;
-    this.touchRotationEase = this.isMobileLayout ? 0.38 : 0.2;
-    this.touchLiveFollow = this.isMobileLayout ? 0.042 : 0.032;
+    this.touchRotationEase = this.isMobileLayout ? 0.28 : 0.2;
+    this.touchLiveFollow = this.isMobileLayout ? 0.032 : 0.032;
     this.pointerRotationSpeed = 0.07;
-    this.touchRotationSpeed = this.isMobileLayout ? 0.16 : 0.13;
-    this.gestureLockThreshold = this.isMobileLayout ? 4 : 7;
-    this.gestureLockRatio = this.isMobileLayout ? 0.72 : 1.12;
+    this.touchRotationSpeed = this.isMobileLayout ? 0.095 : 0.13;
+    this.gestureLockThreshold = this.isMobileLayout ? 6 : 7;
+    this.gestureLockRatio = this.isMobileLayout ? 1.24 : 1.12;
     this.pointer = null;
     this.touch = null;
     this.touchMomentum = 0;
@@ -2097,7 +2097,7 @@ class QuickBrowseDome {
   releaseTouchMomentum(velocity) {
     const speed = Math.abs(velocity);
     if (speed < 0.0025) return 0;
-    return Math.sign(velocity) * Math.min(this.isMobileLayout ? 0.36 : 0.22, speed * 1.26);
+    return Math.sign(velocity) * Math.min(this.isMobileLayout ? 0.22 : 0.22, speed * 1.1);
   }
 
   onTouchStart(event) {
@@ -2140,31 +2140,23 @@ class QuickBrowseDome {
 
     if (this.touch.gesture === "pending" && Math.max(absX, absY) > this.gestureLockThreshold) {
       const axisGap = Math.abs(absX - absY);
-      if (axisGap < 2) return;
-      if (absX > absY) {
+      const horizontalIntent = absX > absY * this.gestureLockRatio && axisGap > 3;
+      const verticalIntent = absY >= absX || absY > absX * 0.82;
+      if (horizontalIntent) {
         this.touch.gesture = "drag";
         this.root.classList.add("is-horizontal-dragging");
-      } else {
+      } else if (verticalIntent) {
         this.touch.gesture = "scroll";
         this.root.classList.add("is-vertical-scrolling");
+      } else {
+        return;
       }
     }
 
     if (this.touch.gesture === "scroll") {
-      const scrollDelta = this.touch.lastY - touch.clientY;
-      const beforeScrollY = window.scrollY || window.pageYOffset || 0;
-      if (scrollDelta) {
-        requestAnimationFrame(() => {
-          const afterScrollY = window.scrollY || window.pageYOffset || 0;
-          if (Math.abs(afterScrollY - beforeScrollY) < 1) {
-            window.scrollBy({ top: scrollDelta * 1.12, left: 0, behavior: "auto" });
-          }
-        });
-      }
       this.touch.lastX = touch.clientX;
       this.touch.lastY = touch.clientY;
       this.touch.lastTime = performance.now();
-      this.markInteraction();
       return;
     }
 
