@@ -1129,6 +1129,8 @@ let archiveSectionObserver = null;
 let scrollLockDepth = 0;
 let lockedScrollY = 0;
 let scrollLockMode = null;
+let scrollLockPreviousBodyPaddingRight = "";
+let scrollLockAppliedBodyPadding = false;
 
 const awardCertificates = [
   {
@@ -1830,6 +1832,7 @@ class QuickBrowseDome {
     this.holdSnapshot = null;
     this.suppressClick = false;
     this.lastInteraction = performance.now();
+    this.autoResumeDelay = this.isMobileLayout ? 2200 : 2600;
     this.lastFrameTime = performance.now();
     this.lastPaintTime = 0;
     this.frameInterval = 0;
@@ -1949,7 +1952,9 @@ class QuickBrowseDome {
     this.root.addEventListener("touchmove", this.onTouchMove, { passive: false });
     this.root.addEventListener("touchend", this.onTouchEnd, { passive: false });
     this.root.addEventListener("touchcancel", this.onTouchEnd, { passive: false });
-    this.root.addEventListener("wheel", this.onWheelPageScroll, { passive: this.isMobileLayout ? false : true });
+    if (this.isMobileLayout) {
+      this.root.addEventListener("wheel", this.onWheelPageScroll, { passive: false });
+    }
     this.root.addEventListener("selectstart", this.onSelectStart);
     this.root.addEventListener("dragstart", this.onDragStart);
     this.root.addEventListener("keydown", this.onKeyDown);
@@ -2133,14 +2138,15 @@ class QuickBrowseDome {
 
     if (Math.hypot(dx, dy) > 5) this.touch.moved = true;
 
-    if (this.touch.gesture === "pending" && Math.max(absX, absY) > 3) {
-      if (absY >= absX * 0.68) {
-        this.touch.gesture = "scroll";
-        this.root.classList.add("is-vertical-scrolling");
-      }
-      if (this.touch.gesture === "pending" && absX > absY * 1.18) {
+    if (this.touch.gesture === "pending" && Math.max(absX, absY) > this.gestureLockThreshold) {
+      const axisGap = Math.abs(absX - absY);
+      if (axisGap < 2) return;
+      if (absX > absY) {
         this.touch.gesture = "drag";
         this.root.classList.add("is-horizontal-dragging");
+      } else {
+        this.touch.gesture = "scroll";
+        this.root.classList.add("is-vertical-scrolling");
       }
     }
 
@@ -2203,6 +2209,7 @@ class QuickBrowseDome {
   }
 
   onWheelPageScroll(event) {
+    if (!this.isMobileLayout) return;
     if (event.ctrlKey || Math.abs(event.deltaX) > Math.abs(event.deltaY) * 1.35) return;
 
     const modeScale = event.deltaMode === 1
@@ -2425,11 +2432,10 @@ class QuickBrowseDome {
   restoreHeldPosition() {
     if (!this.holdSnapshot) return;
 
-    this.rotation.y = this.holdSnapshot.rotationY;
-    this.targetRotation.y = this.holdSnapshot.rotationY;
     this.holdSnapshot = null;
-    this.lastFrameTime = performance.now();
-    this.markInteraction();
+    const now = performance.now();
+    this.lastFrameTime = now;
+    this.lastInteraction = now - this.autoResumeDelay - 32;
     this.applyTransform();
     this.start();
   }
@@ -2486,7 +2492,7 @@ class QuickBrowseDome {
       this.touchReleaseFollow *= Math.exp(-delta * (this.isMobileLayout ? 0.0048 : 0.009));
       if (this.touchReleaseFollow < 0.001) this.touchReleaseFollow = 0;
     }
-    if (!this.pointer && !this.touch && !this.touchMomentum && !this.touchReleaseFollow && !this.holdSnapshot && timestamp - this.lastInteraction > 1800) {
+    if (!this.pointer && !this.touch && !this.touchMomentum && !this.touchReleaseFollow && !this.holdSnapshot && timestamp - this.lastInteraction > this.autoResumeDelay) {
       this.targetRotation.y += delta * 0.0032;
     }
 
@@ -2710,8 +2716,8 @@ class CertificateGallery {
     this.suppressClickUntil = 0;
     this.gestureLockThreshold = this.isMobileLayout ? 4 : 8;
     this.gestureLockRatio = this.isMobileLayout ? 1.18 : 1.1;
-    this.autoSpeed = this.isMobileLayout ? 0 : 0.022;
-    this.autoResumeDelay = this.isMobileLayout ? 4400 : 3000;
+    this.autoSpeed = this.isMobileLayout ? 0.012 : 0.022;
+    this.autoResumeDelay = 0;
     this.renderWindow = this.isMobileLayout ? 1.58 : 1.9;
     this.loadWindow = this.isMobileLayout ? 1.22 : 1.48;
     this.lastInteraction = performance.now();
@@ -2853,7 +2859,7 @@ class CertificateGallery {
     this.isVisible = Boolean(entries[0]?.isIntersecting);
     if (!this.isVisible) return;
     this.render(performance.now(), false);
-    if (!this.isMobileLayout) this.start();
+    if (this.autoSpeed > 0) this.start();
   }
 
   onVisibilityChange() {
@@ -3120,7 +3126,7 @@ class CertificateGallery {
       this.touchReleaseFollow *= Math.exp(-deltaTime * 0.01);
       if (this.touchReleaseFollow < 0.001) this.touchReleaseFollow = 0;
     }
-    if (shouldAutoScroll && !this.pointer && !this.touch && !this.touchMomentum && !this.touchReleaseFollow && timestamp - this.lastInteraction > this.autoResumeDelay) {
+    if (shouldAutoScroll && !this.pointer && !this.touch && !this.touchMomentum && !this.touchReleaseFollow) {
       this.scroll.target += deltaTime * this.autoSpeed;
     }
     const releaseEase = this.scrollEase + (0.5 - this.scrollEase) * this.touchReleaseFollow;
@@ -3160,8 +3166,8 @@ class CertificateGallery {
       return;
     }
     this.lastPaintTime = timestamp;
-    this.render(timestamp, !this.isMobileLayout);
-    const shouldContinue = !this.isMobileLayout ||
+    this.render(timestamp, this.autoSpeed > 0);
+    const shouldContinue = this.autoSpeed > 0 ||
       Boolean(this.pointer) ||
       Boolean(this.touch) ||
       Math.abs(this.touchMomentum) > 0.01 ||
@@ -3367,7 +3373,7 @@ function renderArchive() {
     card.type = "button";
     card.dataset.projectId = project.id;
     card.dataset.openProject = project.id;
-    card.style.setProperty("--archive-enter-delay", `${Math.min(index * 70, 420)}ms`);
+    card.style.setProperty("--archive-enter-delay", `${Math.min(index * 82, 656)}ms`);
     card.innerHTML = `
       <div class="card-media">
         <img src="${coverSrc}" alt="${projectTitle(project)}" loading="lazy" />
@@ -3380,6 +3386,9 @@ function renderArchive() {
         <p class="card-description">${projectDescription(project)}</p>
       </div>
     `;
+    card.addEventListener("animationend", () => {
+      card.classList.add("is-entered");
+    }, { once: true });
     pageGrid.appendChild(card);
   });
 
@@ -3405,10 +3414,23 @@ function prefersReducedMotion() {
 
 function lockPageScroll() {
   if (scrollLockDepth === 0) {
+    const html = document.documentElement;
+    const scrollbarGap = Math.max(0, window.innerWidth - html.clientWidth);
+    const supportsStableGutter = window.CSS?.supports?.("scrollbar-gutter", "stable") ?? false;
+    html.style.setProperty("--scroll-lock-gap", `${scrollbarGap}px`);
+    html.classList.add("is-scroll-locked");
+    scrollLockPreviousBodyPaddingRight = document.body.style.paddingRight;
+    scrollLockAppliedBodyPadding = false;
+
+    if (!supportsStableGutter && scrollbarGap > 0 && !isMobileViewport()) {
+      const currentPadding = Number.parseFloat(getComputedStyle(document.body).paddingRight) || 0;
+      document.body.style.paddingRight = `${currentPadding + scrollbarGap}px`;
+      scrollLockAppliedBodyPadding = true;
+    }
+
     if (isMobileViewport()) {
       scrollLockMode = "fixed";
       lockedScrollY = window.scrollY || window.pageYOffset || 0;
-      document.documentElement.classList.add("is-scroll-locked");
       document.body.style.position = "fixed";
       document.body.style.top = `-${lockedScrollY}px`;
       document.body.style.left = "0";
@@ -3439,6 +3461,12 @@ function unlockPageScroll() {
   }
   document.body.style.overflow = "";
   document.documentElement.classList.remove("is-scroll-locked");
+  document.documentElement.style.removeProperty("--scroll-lock-gap");
+  if (scrollLockAppliedBodyPadding) {
+    document.body.style.paddingRight = scrollLockPreviousBodyPaddingRight;
+  }
+  scrollLockPreviousBodyPaddingRight = "";
+  scrollLockAppliedBodyPadding = false;
   if (shouldRestorePosition) {
     const html = document.documentElement;
     const body = document.body;
@@ -3608,7 +3636,7 @@ function openProject(projectId, sourceElement = null) {
   modalIsClosing = false;
   const modalWasOpen = modal.classList.contains("is-open");
 
-  if (!modalWasOpen && isMobileViewport()) {
+  if (!modalWasOpen) {
     quickBrowse?.holdPosition();
   }
 
@@ -3692,8 +3720,9 @@ function openProject(projectId, sourceElement = null) {
       const thumb = document.createElement("button");
       thumb.className = `thumb-btn${index === 0 ? " is-active" : ""}`;
       thumb.type = "button";
-      thumb.innerHTML = `<img src="${previewPath(project, image)}" alt="${projectTitle(project)} ${index + 1}" loading="lazy" />`;
-      thumb.addEventListener("click", () => setModalImage(project, image, thumb));
+      thumb.dataset.modalThumbIndex = String(index);
+      thumb.setAttribute("aria-label", `${projectTitle(project)} ${index + 1}`);
+      thumb.innerHTML = `<img src="${previewPath(project, image)}" alt="${projectTitle(project)} ${index + 1}" loading="lazy" decoding="async" draggable="false" />`;
       modalGallery.appendChild(thumb);
     });
 
@@ -3846,6 +3875,15 @@ function setModalImageByIndex(index, options = {}) {
   setModalImage(activeProject, activeProject.images[nextIndex], nextThumb, options);
 }
 
+function setModalImageFromThumb(thumb, options = {}) {
+  if (!thumb || !activeProject?.images?.length || activeProject.pdfFile) return;
+
+  const index = Number(thumb.dataset.modalThumbIndex);
+  if (!Number.isInteger(index) || !activeProject.images[index]) return;
+
+  setModalImage(activeProject, activeProject.images[index], thumb, options);
+}
+
 function preloadModalNeighbors(project = activeProject) {
   if (!project?.images?.length || project.pdfFile) return;
 
@@ -3887,7 +3925,6 @@ function resetModalInteractionState() {
 function finishProjectClose(trigger) {
   clearModalLaunch();
   modalIsClosing = false;
-  quickBrowse?.restoreHeldPosition();
   modal.classList.remove("is-open");
   modal.setAttribute("aria-hidden", "true");
   modalImage.removeAttribute("src");
@@ -3905,6 +3942,7 @@ function finishProjectClose(trigger) {
   modalOriginal.removeAttribute("rel");
   setPageBackgroundInert(false);
   unlockPageScroll();
+  quickBrowse?.restoreHeldPosition();
 
   lastProjectTrigger = null;
   lastProjectSourceRect = null;
@@ -4484,6 +4522,15 @@ modalOriginal.addEventListener("click", (event) => {
   );
 
   openImageViewer(currentSrc, modalTitle.textContent, items, index, activeModalThumb());
+});
+
+modalGallery.addEventListener("click", (event) => {
+  const thumb = event.target.closest(".thumb-btn");
+  if (!thumb || !modalGallery.contains(thumb)) return;
+
+  event.preventDefault();
+  event.stopPropagation();
+  setModalImageFromThumb(thumb);
 });
 
 document.querySelectorAll(".timeline-card").forEach((card) => {
