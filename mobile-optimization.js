@@ -309,8 +309,8 @@
       const absX = Math.abs(dx);
       const absY = Math.abs(dy);
 
-      if (!quickTouch.axis && Math.max(absX, absY) > 7) {
-        quickTouch.axis = absX > absY * 0.82 ? "x" : "y";
+      if (!quickTouch.axis && Math.max(absX, absY) > 8) {
+        quickTouch.axis = absX > absY * 1.22 ? "x" : "y";
       }
 
       if (quickTouch.axis === "x") {

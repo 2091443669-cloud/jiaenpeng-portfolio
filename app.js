@@ -2133,21 +2133,28 @@ class QuickBrowseDome {
 
     if (Math.hypot(dx, dy) > 5) this.touch.moved = true;
 
-    if (this.touch.gesture === "pending" && Math.max(absX, absY) > 2) {
-      if (absY > absX * 1.35) {
+    if (this.touch.gesture === "pending" && Math.max(absX, absY) > 3) {
+      if (absY >= absX * 0.68) {
         this.touch.gesture = "scroll";
         this.root.classList.add("is-vertical-scrolling");
       }
-      if (this.touch.gesture === "pending") {
+      if (this.touch.gesture === "pending" && absX > absY * 1.18) {
         this.touch.gesture = "drag";
         this.root.classList.add("is-horizontal-dragging");
       }
     }
 
     if (this.touch.gesture === "scroll") {
-      if (event.cancelable) event.preventDefault();
       const scrollDelta = this.touch.lastY - touch.clientY;
-      if (scrollDelta) window.scrollBy({ top: scrollDelta * 1.08, left: 0, behavior: "auto" });
+      const beforeScrollY = window.scrollY || window.pageYOffset || 0;
+      if (scrollDelta) {
+        requestAnimationFrame(() => {
+          const afterScrollY = window.scrollY || window.pageYOffset || 0;
+          if (Math.abs(afterScrollY - beforeScrollY) < 1) {
+            window.scrollBy({ top: scrollDelta * 1.12, left: 0, behavior: "auto" });
+          }
+        });
+      }
       this.touch.lastX = touch.clientX;
       this.touch.lastY = touch.clientY;
       this.touch.lastTime = performance.now();
@@ -2702,9 +2709,11 @@ class CertificateGallery {
     this.suppressClick = false;
     this.suppressClickUntil = 0;
     this.gestureLockThreshold = this.isMobileLayout ? 4 : 8;
-    this.gestureLockRatio = this.isMobileLayout ? 0.68 : 1.1;
-    this.autoSpeed = this.isMobileLayout ? 0.018 : 0.022;
+    this.gestureLockRatio = this.isMobileLayout ? 1.18 : 1.1;
+    this.autoSpeed = this.isMobileLayout ? 0 : 0.022;
     this.autoResumeDelay = this.isMobileLayout ? 4400 : 3000;
+    this.renderWindow = this.isMobileLayout ? 1.58 : 1.9;
+    this.loadWindow = this.isMobileLayout ? 1.22 : 1.48;
     this.lastInteraction = performance.now();
     this.lastFrameTime = performance.now();
     this.lastPaintTime = 0;
@@ -2716,6 +2725,7 @@ class CertificateGallery {
 
     this.track = document.createElement("div");
     this.track.className = "certificate-gallery-track";
+    if (this.isMobileLayout) this.root.classList.add("is-mobile-optimized");
     this.root.appendChild(this.track);
     this.cards = this.items.map((item, index) => this.createCard(item, index));
 
@@ -2769,7 +2779,7 @@ class CertificateGallery {
     card.type = "button";
     card.dataset.certificateIndex = `${index}`;
     card.innerHTML = `
-      <span class="certificate-gallery-media"><img src="${item.image}" alt="" loading="lazy" draggable="false" /></span>
+      <span class="certificate-gallery-media"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==" data-src="${item.image}" alt="" loading="lazy" decoding="async" draggable="false" /></span>
       <span class="certificate-gallery-copy"><span>${item.year}</span><strong></strong><small></small></span>
     `;
     card.addEventListener("click", (event) => {
@@ -2781,6 +2791,16 @@ class CertificateGallery {
     });
     this.track.appendChild(card);
     return { item, element: card };
+  }
+
+  loadCardImage(index, isPriority = false) {
+    const image = this.cards[index]?.element.querySelector("img");
+    if (!image || image.dataset.loaded === "true") return;
+    const source = image.dataset.src;
+    if (!source) return;
+    if ("fetchPriority" in image) image.fetchPriority = isPriority ? "high" : "low";
+    image.src = source;
+    image.dataset.loaded = "true";
   }
 
   openCard(index) {
@@ -2833,7 +2853,7 @@ class CertificateGallery {
     this.isVisible = Boolean(entries[0]?.isIntersecting);
     if (!this.isVisible) return;
     this.render(performance.now(), false);
-    this.start();
+    if (!this.isMobileLayout) this.start();
   }
 
   onVisibilityChange() {
@@ -2864,6 +2884,7 @@ class CertificateGallery {
       startX: touch.clientX,
       startY: touch.clientY,
       lastX: touch.clientX,
+      lastY: touch.clientY,
       lastTime: now,
       startTarget: this.scroll.target,
       velocity: 0,
@@ -2885,14 +2906,33 @@ class CertificateGallery {
 
     if (Math.hypot(distance, verticalDistance) > 5) this.touch.moved = true;
 
-    if (this.touch.gesture === "pending" && Math.max(absX, absY) > 2) {
-      if (absY > absX * 1.35) {
+    if (this.touch.gesture === "pending" && Math.max(absX, absY) > 3) {
+      if (absY >= absX * 0.68) {
         this.touch.gesture = "scroll";
         this.suppressClick = true;
         this.suppressClickUntil = performance.now() + 650;
         return;
       }
-      this.touch.gesture = "drag";
+      if (absX > absY * this.gestureLockRatio) {
+        this.touch.gesture = "drag";
+      }
+    }
+
+    if (this.touch.gesture === "scroll") {
+      const scrollDelta = this.touch.lastY - touch.clientY;
+      const beforeScrollY = window.scrollY || window.pageYOffset || 0;
+      if (scrollDelta) {
+        requestAnimationFrame(() => {
+          const afterScrollY = window.scrollY || window.pageYOffset || 0;
+          if (Math.abs(afterScrollY - beforeScrollY) < 1) {
+            window.scrollBy({ top: scrollDelta * 1.12, left: 0, behavior: "auto" });
+          }
+        });
+      }
+      this.touch.lastX = touch.clientX;
+      this.touch.lastY = touch.clientY;
+      this.touch.lastTime = performance.now();
+      return;
     }
 
     if (this.touch.gesture !== "drag") return;
@@ -2906,6 +2946,7 @@ class CertificateGallery {
     this.touch.velocity = this.touch.velocity * 0.76 + stepVelocity * 0.24;
     this.touch.releaseVelocity = this.touch.velocity * 0.45 + stepVelocity * 0.55;
     this.touch.lastX = touch.clientX;
+    this.touch.lastY = touch.clientY;
     this.touch.lastTime = now;
     this.scroll.target = this.touch.startTarget + distance * this.scrollSpeed * touchDragSpeed;
     this.scroll.current += (this.scroll.target - this.scroll.current) * 0.5;
@@ -3089,12 +3130,22 @@ class CertificateGallery {
     this.cards.forEach(({ element }, index) => {
       let x = index * this.spacing - this.scroll.current;
       x = ((x + this.totalWidth / 2) % this.totalWidth + this.totalWidth) % this.totalWidth - this.totalWidth / 2;
-      const ratio = Math.min(1.15, Math.abs(x) / halfViewport);
+      const rawRatio = Math.abs(x) / halfViewport;
+      const ratio = Math.min(1.15, rawRatio);
+      const shouldRender = rawRatio <= this.renderWindow;
+      if (!shouldRender) {
+        element.style.visibility = "hidden";
+        element.style.pointerEvents = "none";
+        return;
+      }
+      if (rawRatio <= this.loadWindow) this.loadCardImage(index, rawRatio < 0.28);
       const y = ratio * ratio * this.height * 0.16 * this.bend;
       const rotation = -(x / halfViewport) * 8 * this.bend;
       const scale = 1 - ratio * 0.12;
       const opacity = Math.max(0.24, 1 - ratio * 0.48);
 
+      element.style.visibility = "visible";
+      element.style.pointerEvents = rawRatio < 1 ? "auto" : "none";
       element.style.opacity = `${opacity}`;
       element.style.zIndex = `${Math.round(1000 - ratio * 100)}`;
       element.style.transform = `translate3d(${x - this.cardWidth / 2}px, ${this.cardTop + y}px, 0) rotateZ(${rotation}deg) scale(${scale})`;
@@ -3109,8 +3160,14 @@ class CertificateGallery {
       return;
     }
     this.lastPaintTime = timestamp;
-    this.render(timestamp, true);
-    this.start();
+    this.render(timestamp, !this.isMobileLayout);
+    const shouldContinue = !this.isMobileLayout ||
+      Boolean(this.pointer) ||
+      Boolean(this.touch) ||
+      Math.abs(this.touchMomentum) > 0.01 ||
+      this.touchReleaseFollow > 0.001 ||
+      Math.abs(this.scroll.target - this.scroll.current) > 0.35;
+    if (shouldContinue) this.start();
   }
 }
 

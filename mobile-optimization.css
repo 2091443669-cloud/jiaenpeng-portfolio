@@ -25,7 +25,7 @@
 
   .quick-browse {
     contain: layout paint;
-    overscroll-behavior: contain;
+    overscroll-behavior: auto;
     touch-action: pan-y;
   }
 

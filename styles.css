@@ -2162,6 +2162,8 @@ html.is-page-entered .hero-liquid .hero-index {
 
 .awards-section {
   position: relative;
+  content-visibility: auto;
+  contain-intrinsic-size: 760px;
   isolation: isolate;
   overflow: hidden;
   padding-block: clamp(48px, 5.6vw, 72px);
@@ -2288,6 +2290,7 @@ html.is-page-entered .hero-liquid .hero-index {
   height: clamp(22rem, 40vw, 31rem);
   margin-top: 0;
   overflow: hidden;
+  contain: layout paint;
   cursor: grab;
   isolation: isolate;
   touch-action: pan-y;
@@ -2352,6 +2355,7 @@ html.is-page-entered .hero-liquid .hero-index {
   transform-origin: center center;
   cursor: grab;
   -webkit-user-drag: none;
+  contain: layout paint style;
   will-change: transform, opacity;
 }
 
@@ -2374,6 +2378,7 @@ html.is-page-entered .hero-liquid .hero-index {
   width: 100%;
   height: 100%;
   object-fit: contain;
+  background: #151515;
   -webkit-user-drag: none;
   user-select: none;
 }
@@ -3841,6 +3846,22 @@ html[lang="en"] .resume-block-heading h3 {
 
   .filter-btn {
     min-width: max-content;
+  }
+
+  .awards-section {
+    contain-intrinsic-size: 920px;
+  }
+
+  .certificate-gallery {
+    height: clamp(26rem, 88vw, 34rem);
+    contain: layout paint;
+    overscroll-behavior: auto;
+    touch-action: pan-y;
+  }
+
+  .certificate-gallery.is-mobile-optimized .certificate-gallery-card {
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.34);
+    will-change: transform;
   }
 
   .work-card,
