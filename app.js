@@ -1245,6 +1245,10 @@ const hiddenFromSelected = new Set([
   "woodcraft-guitar-pick-pendants"
 ]);
 
+const hiddenFromQuickBrowse = new Set([
+  "zhijian-shanhai-ai-illustration"
+]);
+
 const selectedGrid = document.querySelector("#selected-grid");
 const archiveGrid = document.querySelector("#archive-grid");
 const modal = document.querySelector("#project-modal");
@@ -2558,7 +2562,7 @@ class QuickBrowseDome {
 function initQuickBrowse() {
   const root = document.querySelector("#selected-grid");
   if (!root || quickBrowse) return;
-  quickBrowse = new QuickBrowseDome(root, allProjects());
+  quickBrowse = new QuickBrowseDome(root, allProjects().filter((project) => !hiddenFromQuickBrowse.has(project.id)));
 }
 
 class AwardsLightRays {
@@ -3240,6 +3244,7 @@ function renderProjects() {
   const visibleProjects = allProjects().filter(
     (project) =>
       !hiddenFromSelected.has(project.id) &&
+      !hiddenFromQuickBrowse.has(project.id) &&
       (activeFilter === "all" || project.tags.includes(activeFilter)) &&
       (activeAbility === "all" || projectCapabilities(project).includes(activeAbility))
   );
