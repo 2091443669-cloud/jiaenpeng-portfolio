@@ -107,6 +107,7 @@ const copy = {
     awardOne: "2025 中国好创意大赛 全国总决赛一等奖",
     awardTwo: "2025 中国好创意大赛清正廉洁专项赛 全国总决赛一等奖",
     awardThree: "2026 中国好创意大赛个人 IP 专项赛 全国总决赛一等奖",
+    awardAiIllustration: "2026 中国好创意非遗出海·智创未来 AI 生成专项赛 全国总决赛三等奖（AI 生成漫插类）",
     awardWhiteElephantPackaging: "2026 中国好创意未来包装创新专项大赛 全国总决赛优秀奖",
     awardFour: "2025 第五届 ICAD 国际当代青年美术设计大赛 国赛铜奖",
     awardFive: "2025 “华夏奖”全国设计大赛 国赛优秀奖",
@@ -141,6 +142,8 @@ const copy = {
     timelineTwoPrize: "全国总决赛一等奖",
     timelineThreeTitle: "中国好创意大赛清正廉洁专项赛",
     timelineThreePrize: "全国总决赛一等奖",
+    timelineAiIllustrationTitle: "中国好创意非遗出海·智创未来 AI 生成专项赛",
+    timelineAiIllustrationPrize: "全国总决赛三等奖（AI 生成漫插类）",
     timelineWhiteElephantPackagingTitle: "中国好创意未来包装创新专项大赛",
     timelineWhiteElephantPackagingPrize: "全国总决赛优秀奖",
     timelineFutureIpTitle: "未来设计师",
@@ -265,6 +268,8 @@ const copy = {
     awardOne: "2025 China Creative Design Competition, National Final First Prize",
     awardTwo: "2025 China Creative Design Competition, Integrity Special Category, National Final First Prize",
     awardThree: "2026 China Creative Design Competition, Personal IP Special Category, National Final First Prize",
+    awardAiIllustration:
+      "2026 China Creative Design Competition, Intangible Heritage Overseas AI Generation Category, National Final Third Prize",
     awardWhiteElephantPackaging: "2026 China Creative Design Competition, Future Packaging Innovation Category, National Finalist Excellence Award",
     awardFour: "2025 5th ICAD International Contemporary Youth Art Design Competition, National Bronze Award",
     awardFive: "2025 Huaxia Award National Design Competition, National Excellence Award",
@@ -300,6 +305,8 @@ const copy = {
     timelineTwoPrize: "National Final First Prize",
     timelineThreeTitle: "China Creative Design Competition, Integrity Category",
     timelineThreePrize: "National Final First Prize",
+    timelineAiIllustrationTitle: "China Creative Design Competition, Intangible Heritage Overseas AI Generation Category",
+    timelineAiIllustrationPrize: "National Final Third Prize, AI Illustration",
     timelineWhiteElephantPackagingTitle: "China Creative Design Competition, Future Packaging Innovation Category",
     timelineWhiteElephantPackagingPrize: "National Finalist Excellence Award",
     timelineFutureIpTitle: "Future Designer Competition",
@@ -372,6 +379,20 @@ const projects = [
       "以海南黎锦文化的国际传播为主题，通过符号提炼、图形重构与海报化叙事，将非遗纹样、民族文化与当代视觉语言结合，形成两张系列传播海报。",
     descriptionEn:
       "A two-poster series for the international communication of Hainan Li brocade culture, combining heritage patterns, cultural symbols, and contemporary poster language."
+  },
+  {
+    id: "zhijian-shanhai-ai-illustration",
+    titleZh: "织见山海",
+    titleEn: "Weaving Mountains and Seas",
+    categoryZh: "AIGC 漫插 / 非遗传播 / 文化视觉",
+    categoryEn: "AIGC Illustration / Heritage Communication / Cultural Visual",
+    tags: ["visual"],
+    folder: "./assets/works/01_Selected_Works/16_zhijian-shanhai-ai-illustration__织见山海AI漫插",
+    images: ["01_work.jpg"],
+    descriptionZh:
+      "以非遗出海与智创未来为主题，围绕传统文化的当代表达和 AIGC 漫插生成进行视觉探索。作品获中国好创意（第二十届）暨全国数字艺术设计大赛非遗出海·智创未来人工智能生成专项大赛全国总决赛三等奖。",
+    descriptionEn:
+      "An AIGC illustration exploration around intangible heritage overseas communication and future-oriented cultural creativity, awarded National Final Third Prize in the China Creative Design Competition."
   },
   {
     id: "information-visualization",
@@ -823,6 +844,18 @@ const projectCaseNotes = {
       outcome: "Delivered a two-poster series that unifies heritage motifs, character imagery, and communication messages."
     }
   },
+  "zhijian-shanhai-ai-illustration": {
+    zh: {
+      goal: "围绕非遗出海与人工智能生成主题，探索传统文化在国际传播语境中的漫插表达方式。",
+      role: "结合赛事主题、非遗意象和 AIGC 生成流程，完成画面方向、风格控制和证书成果整理展示。",
+      outcome: "作品《织见山海》获全国总决赛三等奖，补充作品集中 AIGC 与非遗传播方向的成果证明。"
+    },
+    en: {
+      goal: "Explore AI-generated illustration for intangible heritage overseas communication in a contemporary visual context.",
+      role: "Combined the competition theme, heritage imagery, and AIGC workflow to control visual direction and present the awarded result.",
+      outcome: "The work Weaving Mountains and Seas won National Final Third Prize and adds an AIGC heritage-communication result to the portfolio."
+    }
+  },
   "information-visualization": {
     zh: {
       goal: "把游戏文化、工艺演变、民族纹样对比和政策信息等复杂内容转化为可阅读的长图。",
@@ -1094,6 +1127,7 @@ const projectCapabilityMap = {
   "jinling-ali": ["ip", "culture", "system"],
   "rural-revitalization": ["visual", "culture", "layout"],
   "li-brocade-international-poster": ["visual", "culture", "layout"],
+  "zhijian-shanhai-ai-illustration": ["visual", "culture", "system"],
   "brand-visual-system": ["brand", "system", "layout"],
   "li-island-seasons-packaging": ["brand", "packaging", "culture"],
   "white-elephant-future-exploration-packaging": ["brand", "packaging", "system"],
@@ -1138,6 +1172,12 @@ const awardCertificates = [
     year: "2026",
     titleKey: "timelineOneTitle",
     prizeKey: "timelineOnePrize"
+  },
+  {
+    image: "./证明材料/2026中国好创意AI生成漫插类全国总决赛三等奖-织见山海.jpg",
+    year: "2026",
+    titleKey: "timelineAiIllustrationTitle",
+    prizeKey: "timelineAiIllustrationPrize"
   },
   {
     image: "./证明材料/1.2025年：获得中国好创意大赛国赛一等奖.jpg",
