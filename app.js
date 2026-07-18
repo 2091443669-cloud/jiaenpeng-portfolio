@@ -156,7 +156,8 @@ const copy = {
     caseGoalLabel: "设计目标",
     caseRoleLabel: "我的工作",
     caseOutcomeLabel: "成果亮点",
-    originalImageLabel: "预览高清原图"
+    originalImageLabel: "放大查看作品",
+    protectedMediaNotice: "作品仅供浏览，请勿下载或转载"
   },
   en: {
     pageTitle: "Jiaen Peng Interactive Portfolio",
@@ -319,7 +320,8 @@ const copy = {
     caseGoalLabel: "Design Goal",
     caseRoleLabel: "My Role",
     caseOutcomeLabel: "Outcome",
-    originalImageLabel: "Preview high-resolution image"
+    originalImageLabel: "View larger",
+    protectedMediaNotice: "Portfolio work is for viewing only. Please do not download or repost."
   }
 };
 
@@ -351,6 +353,45 @@ const projects = [
       "以海南黎锦文化为核心，塑造原创 IP 形象“锦灵·阿黎”。项目从角色设定、三视图、表情系统到文创产品和场景应用，构建具有亲和力和文化识别度的 IP 系统。",
     descriptionEn:
       "Centered on Hainan Li brocade culture, this project creates the original IP character Jinling Ali through character design, expression sets, merchandise, and spatial applications."
+  },
+  {
+    id: "honor-of-kings-official-event-merch",
+    titleZh: "王者荣耀官方活动文创产品",
+    titleEn: "Honor of Kings Official Event Creative Products",
+    categoryZh: "IP 形象设计 / 活动文创 / 贴纸设计",
+    categoryEn: "IP Character Design / Event Merchandise / Sticker Design",
+    tags: ["ip"],
+    folder:
+      "./assets/works/01_Selected_Works/17_honor-of-kings-official-event-merch__王者荣耀官方活动文创产品",
+    images: ["01_sticker-season-1.png", "02_mulan.png"],
+    descriptionZh:
+      "围绕《王者荣耀》官方活动文创需求，完成第一季角色贴纸组合与花木兰主题文创视觉。项目以Q版角色、游戏识别元素和系列化版式组织为核心，兼顾活动传播、贴纸应用与周边延展。",
+    descriptionEn:
+      "Created official-event merchandise visuals for Honor of Kings, including a first-season character sticker set and a Mulan-themed design, with chibi character styling, recognizable game elements, and a scalable visual system."
+  },
+  {
+    id: "hainnu-party-building-office-culture-wall",
+    titleZh: "海南师范大学党建办公室文化墙",
+    titleEn: "Hainan Normal University Party-Building Office Culture Wall",
+    categoryZh: "空间视觉 / 党建文化墙 / 环境设计",
+    categoryEn: "Spatial Visual / Party-Building Culture Wall / Environmental Design",
+    tags: ["visual"],
+    folder:
+      "./assets/works/01_Selected_Works/18_hainnu-party-building-office-culture-wall__海南师范大学党建办公室文化墙",
+    images: [
+      "01_main-wall.png",
+      "02_quality-system-wall.png",
+      "03_mission-wall.png",
+      "04_theme-wall.png",
+      "05_theme-layout.png",
+      "06_quality-system-layout.png",
+      "07_quality-system-draft.png",
+      "08_mission-layout.png"
+    ],
+    descriptionZh:
+      "为海南师范大学党建办公室设计系列文化墙，围绕党建引领、教务初心、质量体系与使命表达构建统一的空间视觉。项目包含主墙、侧墙、长幅主题墙、信息图形与落地效果展示。",
+    descriptionEn:
+      "A coordinated culture-wall system for Hainan Normal University's party-building office, covering leadership, educational purpose, quality systems, and mission through spatial graphics, information design, and installation views."
   },
   {
     id: "rural-revitalization",
@@ -501,7 +542,7 @@ const projects = [
     folder:
       "./assets/works/01_Selected_Works/12_white-elephant-future-exploration-packaging__白象未来探索系列包装",
     coverImage: "02_work.jpg",
-    images: ["01_work.jpg", "02_work.jpg", "03_work.jpg"],
+    images: ["02_work.jpg", "01_work.jpg", "03_work.jpg"],
     descriptionZh:
       "以太空探索和美食文化为概念，围绕白象品牌 IP 打造方便面包装系统。作品包含桶装结构创新、袋装视觉、口味系列、收藏卡、礼盒与场景延展，强化趣味性、实用性和品牌陪伴感。",
     descriptionEn:
@@ -745,7 +786,13 @@ const archiveGroups = [
     titleZh: "IP形象设计",
     titleEn: "IP Character Design",
     code: "IP",
-    projectIds: ["jinling-ali", "haixiaoye", "qin-jiaoer", "lizhizhi", "qingrui-nvshi"]
+    projectIds: [
+      "jinling-ali",
+      "haixiaoye",
+      "qin-jiaoer",
+      "lizhizhi",
+      "qingrui-nvshi"
+    ]
   },
   {
     titleZh: "海报设计",
@@ -788,10 +835,16 @@ const archiveGroups = [
     ]
   },
   {
-    titleZh: "书籍与木艺手工",
-    titleEn: "Book and Woodcraft Design",
-    code: "BOOK",
-    projectIds: ["renjian-caomu", "ancang-xuanji", "woodcraft-guitar-pick-pendants"]
+    titleZh: "其他",
+    titleEn: "Other",
+    code: "OTHER",
+    projectIds: [
+      "honor-of-kings-official-event-merch",
+      "hainnu-party-building-office-culture-wall",
+      "renjian-caomu",
+      "ancang-xuanji",
+      "woodcraft-guitar-pick-pendants"
+    ]
   },
 ];
 
@@ -818,6 +871,30 @@ const projectCaseNotes = {
       goal: "Communicate Li brocade culture through a younger and more approachable original IP character.",
       role: "Designed the character concept, three-view drawings, expression set, merchandise, and application scenes.",
       outcome: "Built an extensible IP asset system for exhibition, social communication, and cultural merchandise."
+    }
+  },
+  "honor-of-kings-official-event-merch": {
+    zh: {
+      goal: "围绕《王者荣耀》官方活动传播，建立适合贴纸和文创周边应用的角色视觉。",
+      role: "完成角色贴纸组合、花木兰主题文创版式、系列元素整理和展示图设计。",
+      outcome: "形成两张活动文创视觉，覆盖角色群像贴纸与单角色主题应用，补充商业活动文创方向的案例。"
+    },
+    en: {
+      goal: "Build character visuals for Honor of Kings official-event communication and merchandise applications.",
+      role: "Created the character sticker composition, Mulan-themed layout, series elements, and presentation visuals.",
+      outcome: "Delivered two event-merchandise visuals covering a character sticker set and a single-character themed application."
+    }
+  },
+  "hainnu-party-building-office-culture-wall": {
+    zh: {
+      goal: "围绕党建办公室的空间传播需求，建立庄重、清晰且具有校园识别度的文化墙视觉。",
+      role: "完成主题梳理、信息层级、墙面版式、图形元素和空间效果展示设计。",
+      outcome: "形成覆盖主墙、侧墙与信息展示墙的系列方案，统一党建主题、教学质量内容和空间环境。"
+    },
+    en: {
+      goal: "Create a dignified and legible culture-wall system with a recognizable campus context for a party-building office.",
+      role: "Developed the themes, information hierarchy, wall layouts, graphic elements, and spatial presentation views.",
+      outcome: "Delivered a coordinated series for the main wall, side wall, and information wall across party-building and teaching-quality content."
     }
   },
   "rural-revitalization": {
@@ -1125,6 +1202,8 @@ const capabilityLabels = {
 const projectCapabilityMap = {
   "weave-the-past-embroider-the-future": ["visual", "culture", "system"],
   "jinling-ali": ["ip", "culture", "system"],
+  "honor-of-kings-official-event-merch": ["ip", "system", "layout"],
+  "hainnu-party-building-office-culture-wall": ["visual", "layout", "system"],
   "rural-revitalization": ["visual", "culture", "layout"],
   "li-brocade-international-poster": ["visual", "culture", "layout"],
   "zhijian-shanhai-ai-illustration": ["visual", "culture", "system"],
@@ -1468,10 +1547,6 @@ function projectDescription(project) {
 
 function imagePath(project, image) {
   return `${project.folder}/${image}`;
-}
-
-function projectPdfPath(project) {
-  return project.pdfFile || "";
 }
 
 function previewPath(project, image) {
@@ -3704,14 +3779,11 @@ function openProject(projectId, sourceElement = null) {
   const useMobilePdfPreview = isPdfProject && isMobileViewport();
   modalCount.textContent = isPdfProject
     ? language === "zh"
-      ? "PDF 手册"
-      : "PDF manual"
+      ? "PDF 手册在线预览"
+      : "PDF manual preview"
     : `${project.images.length} ${t("imageCount")}`;
-  modalOriginal.textContent = isPdfProject
-    ? language === "zh"
-      ? "打开完整 PDF"
-      : "Open full PDF"
-    : t("originalImageLabel");
+  modalOriginal.textContent = t("originalImageLabel");
+  modalOriginal.hidden = isPdfProject;
   modalSkills.innerHTML = renderCapabilityChips(project, "modal-skill-chip");
   modalCase.innerHTML = "";
   modalGallery.innerHTML = "";
@@ -3747,22 +3819,17 @@ function openProject(projectId, sourceElement = null) {
   }
 
   if (isPdfProject) {
-    modalOriginal.href = projectPdfPath(project);
-    modalOriginal.target = "_blank";
-    modalOriginal.rel = "noreferrer";
+    delete modalOriginal.dataset.imageSource;
     if (useMobilePdfPreview) {
       modalPdf.src = "about:blank";
       modalImage.src = previewPath(project, project.coverImage || project.images[0]);
       modalImage.alt = projectTitle(project);
     } else {
-      const pdfSrc = `${projectPdfPath(project)}#toolbar=0&navpanes=0&view=FitH`;
-      modalPdf.src = pdfSrc;
+      modalPdf.src = `${project.pdfFile}#toolbar=0&navpanes=0&view=FitH`;
       modalImage.removeAttribute("src");
     }
     if (modalImageDots) modalImageDots.hidden = true;
   } else {
-    modalOriginal.removeAttribute("target");
-    modalOriginal.removeAttribute("rel");
     project.images.forEach((image, index) => {
       const thumb = document.createElement("button");
       thumb.className = `thumb-btn${index === 0 ? " is-active" : ""}`;
@@ -3852,7 +3919,7 @@ function setModalImage(project, image, activeThumb, { animate = true } = {}) {
   modalImage.decoding = "async";
   modalImage.src = source;
   modalImage.alt = projectTitle(project);
-  modalOriginal.href = imagePath(project, image);
+  modalOriginal.dataset.imageSource = imagePath(project, image);
   preloadImage(source);
 
   if (activeThumb) {
@@ -3878,7 +3945,7 @@ function isMobileProjectGallery() {
 function currentModalImageIndex(project = activeProject) {
   if (!project?.images?.length) return 0;
 
-  const currentSource = modalOriginal.getAttribute("href");
+  const currentSource = modalOriginal.dataset.imageSource || "";
   return Math.max(
     project.images.findIndex((image) => imagePath(project, image) === currentSource),
     0
@@ -3923,7 +3990,7 @@ function setModalImageByIndex(index, options = {}) {
 }
 
 function setModalImageFromThumb(thumb, options = {}) {
-  if (!thumb || !activeProject?.images?.length || activeProject.pdfFile) return;
+  if (!thumb || !activeProject?.images?.length) return;
 
   const index = Number(thumb.dataset.modalThumbIndex);
   if (!Number.isInteger(index) || !activeProject.images[index]) return;
@@ -3932,7 +3999,7 @@ function setModalImageFromThumb(thumb, options = {}) {
 }
 
 function preloadModalNeighbors(project = activeProject) {
-  if (!project?.images?.length || project.pdfFile) return;
+  if (!project?.images?.length) return;
 
   const currentIndex = currentModalImageIndex(project);
   [-2, -1, 0, 1, 2].forEach((direction) => {
@@ -3980,13 +4047,12 @@ function finishProjectClose(trigger) {
   modalPdf.hidden = true;
   modalMedia.classList.remove("is-pdf", "is-pdf-preview");
   modalGallery.hidden = false;
+  modalOriginal.hidden = false;
   if (modalImageDots) {
     modalImageDots.innerHTML = "";
     modalImageDots.hidden = true;
   }
-  modalOriginal.removeAttribute("href");
-  modalOriginal.removeAttribute("target");
-  modalOriginal.removeAttribute("rel");
+  delete modalOriginal.dataset.imageSource;
   setPageBackgroundInert(false);
   unlockPageScroll();
   quickBrowse?.restoreHeldPosition();
@@ -4562,7 +4628,7 @@ modalOriginal.addEventListener("click", (event) => {
     src: imagePath(activeProject, image),
     caption: `${projectTitle(activeProject)} ${index + 1}`
   }));
-  const currentSrc = modalOriginal.getAttribute("href");
+  const currentSrc = modalOriginal.dataset.imageSource || "";
   const index = Math.max(
     items.findIndex((item) => item.src === currentSrc),
     0
@@ -4897,9 +4963,70 @@ modalMedia.addEventListener("pointercancel", () => {
 
 modalImage.addEventListener("click", () => {
   if (suppressModalImageClick) return;
-  if (!modalOriginal.getAttribute("href")) return;
+  if (!modalOriginal.dataset.imageSource) return;
   modalOriginal.click();
 });
+
+function initMediaProtection() {
+  const protectedSelector = [
+    ".quick-dome-tile",
+    ".card-media",
+    ".certificate-gallery-media",
+    ".modal-media",
+    ".thumb-btn",
+    ".image-viewer-stage",
+    ".hero-media",
+    ".timeline-card",
+    ".profile-photo"
+  ].join(", ");
+  let noticeTimer = 0;
+
+  const notice = document.createElement("div");
+  notice.className = "media-protection-notice";
+  notice.setAttribute("role", "status");
+  notice.setAttribute("aria-live", "polite");
+  document.body.appendChild(notice);
+
+  const showNotice = () => {
+    notice.textContent = t("protectedMediaNotice");
+    notice.classList.add("is-visible");
+    window.clearTimeout(noticeTimer);
+    noticeTimer = window.setTimeout(() => notice.classList.remove("is-visible"), 2200);
+  };
+
+  const isProtectedTarget = (target) => target instanceof Element && Boolean(target.closest(protectedSelector));
+  const protectImages = (root = document) => {
+    root.querySelectorAll?.("img").forEach((image) => {
+      image.draggable = false;
+      image.setAttribute("draggable", "false");
+    });
+  };
+
+  document.addEventListener("contextmenu", (event) => {
+    if (!isProtectedTarget(event.target)) return;
+    event.preventDefault();
+    showNotice();
+  });
+
+  document.addEventListener("dragstart", (event) => {
+    if (!isProtectedTarget(event.target)) return;
+    event.preventDefault();
+  });
+
+  protectImages();
+  new MutationObserver((records) => {
+    records.forEach((record) => {
+      record.addedNodes.forEach((node) => {
+        if (!(node instanceof Element)) return;
+        if (node.matches("img")) {
+          node.draggable = false;
+          node.setAttribute("draggable", "false");
+        }
+        protectImages(node);
+      });
+    });
+  }).observe(document.body, { childList: true, subtree: true });
+}
 
 document.addEventListener("keydown", (event) => {
   if (event.key === "Tab") {
@@ -4970,4 +5097,5 @@ syncMobileNavigation();
 initArchiveBackVisibility();
 initProfileHighlightsMotion();
 initSectionEntrances();
+initMediaProtection();
 initPageEntrance();

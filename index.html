@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="index, follow, noimageindex, max-image-preview:none" />
     <title>贾恩棚交互作品集</title>
     <link rel="stylesheet" href="./styles.css?v=liquid-ether-v35" />
     <link rel="stylesheet" href="./mobile-optimization.css?v=mobile-smooth-v6" />
@@ -359,7 +360,7 @@
           <div class="modal-case" id="modal-case"></div>
           <div class="modal-meta">
             <span id="modal-count"></span>
-            <a class="modal-original-link" id="modal-original" href="#" data-i18n="originalImageLabel">预览高清原图</a>
+            <button class="modal-original-link" id="modal-original" type="button" data-i18n="originalImageLabel">放大查看作品</button>
           </div>
           <div class="gallery-strip" id="modal-gallery"></div>
         </div>
@@ -368,8 +369,8 @@
 
     <div class="image-viewer" id="image-viewer" aria-hidden="true">
       <div class="image-viewer-backdrop" data-close-viewer></div>
-      <figure class="image-viewer-panel" role="dialog" aria-modal="true" aria-label="高清原图预览">
-        <button class="image-viewer-close" type="button" data-close-viewer aria-label="关闭高清原图">×</button>
+      <figure class="image-viewer-panel" role="dialog" aria-modal="true" aria-label="作品大图预览">
+        <button class="image-viewer-close" type="button" data-close-viewer aria-label="关闭作品大图">×</button>
         <div class="image-viewer-tools gooey-viewer-tools" aria-label="图片缩放工具">
           <button class="image-viewer-tool" type="button" data-viewer-zoom-out aria-label="缩小">缩小</button>
           <button class="image-viewer-tool image-viewer-zoom-label is-active" type="button" data-viewer-zoom-reset aria-label="重置缩放" id="viewer-zoom-label">100%</button>

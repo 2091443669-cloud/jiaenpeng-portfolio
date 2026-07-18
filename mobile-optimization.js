@@ -118,7 +118,7 @@
     const items = thumbs();
     const index = items.findIndex((item) => item.classList.contains("is-active"));
     if (index >= 0) return index;
-    const current = document.querySelector("#modal-original")?.getAttribute("href") || "";
+    const current = document.querySelector("#modal-original")?.dataset.imageSource || "";
     return Math.max(
       items.findIndex((item) => item.querySelector("img")?.src && current && item.querySelector("img").src.includes(current)),
       0

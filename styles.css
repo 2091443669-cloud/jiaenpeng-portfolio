@@ -102,6 +102,67 @@ a {
 img {
   display: block;
   max-width: 100%;
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+.quick-dome-tile,
+.card-media,
+.certificate-gallery-media,
+.modal-media,
+.image-viewer-stage {
+  position: relative;
+}
+
+.quick-dome-tile::after,
+.card-media::after,
+.certificate-gallery-media::after,
+.modal-media::after,
+.image-viewer-stage::after {
+  position: absolute;
+  z-index: 5;
+  right: clamp(8px, 1.2vw, 18px);
+  bottom: clamp(8px, 1.2vw, 18px);
+  width: clamp(18px, 3.2%, 42px);
+  aspect-ratio: 654 / 728;
+  background: url("./assets/watermark-jp.png") center / contain no-repeat;
+  content: "";
+  filter: brightness(0) invert(1) drop-shadow(0 1px 1px rgba(0, 0, 0, 0.42));
+  opacity: 0.24;
+  pointer-events: none;
+}
+
+.quick-dome-tile::after,
+.card-media::after,
+.certificate-gallery-media::after {
+  width: clamp(14px, 6%, 28px);
+  opacity: 0.2;
+}
+
+.media-protection-notice {
+  position: fixed;
+  z-index: 120;
+  right: 18px;
+  bottom: 18px;
+  max-width: min(360px, calc(100vw - 36px));
+  padding: 11px 14px;
+  border: 1px solid color-mix(in srgb, white 28%, transparent);
+  border-radius: 6px;
+  background: rgba(14, 14, 13, 0.9);
+  color: #f7f0e8;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.28);
+  font-size: 0.82rem;
+  line-height: 1.5;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(10px);
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.media-protection-notice.is-visible {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 main {
@@ -3090,8 +3151,13 @@ html[lang="en"] .resume-block-heading h3 {
 .modal-original-link {
   width: max-content;
   max-width: 100%;
+  padding: 0 0 2px;
+  border: 0;
   border-bottom: 1px solid var(--accent);
+  border-radius: 0;
+  background: transparent;
   color: var(--text);
+  font: inherit;
   font-weight: 750;
 }
 

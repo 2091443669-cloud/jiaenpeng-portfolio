@@ -1,0 +1,9 @@
+User-agent: Googlebot-Image
+Disallow: /
+
+User-agent: Bingbot
+Disallow: /assets/
+Disallow: /证明材料/
+
+User-agent: *
+Allow: /
